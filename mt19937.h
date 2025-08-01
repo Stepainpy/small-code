@@ -37,29 +37,29 @@ MT19937_DEF void mt19937_skip(mt19937_t* mt, mt19937_word_t skip);
 #ifdef MT19937_IMPLEMENTATION
 
 static void mt19937_round(mt19937_t* mt) {
-    mt19937_word_t k, y;
+    mt19937_word_t i, x;
     mt->index = 0;
 
-    for (k = 0; k < 624; k++) {
-        y = (mt->words[ k           ] & 0x80000000) |
-            (mt->words[(k + 1) % 624] & 0x7FFFFFFF);
-        mt->words[k] = mt->words[(k + 397) % 624] ^ (y >> 1);
-        if (y & 1) mt->words[k] ^= 0x9908b0df;
+    for (i = 0; i < 624; i++) {
+        x = (mt->words[ i           ] & 0x80000000) |
+            (mt->words[(i + 1) % 624] & 0x7FFFFFFF);
+        mt->words[i] = mt->words[(i + 397) % 624] ^ (x >> 1);
+        if (x & 1) mt->words[i] ^= 0x9908b0df;
     }
 }
 
 mt19937_word_t mt19937(mt19937_t* mt) {
-    mt19937_word_t z;
+    mt19937_word_t x;
     if (mt->index >= 624)
         mt19937_round(mt);
 
-    z = mt->words[mt->index++];
-    z ^= (z >> 11) & 0xFFFFFFFF;
-    z ^= (z <<  7) & 0x9D2C5680;
-    z ^= (z << 15) & 0xEFC60000;
-    z ^= (z >> 18);
+    x = mt->words[mt->index++];
+    x ^= (x >> 11) & 0xFFFFFFFF;
+    x ^= (x <<  7) & 0x9D2C5680;
+    x ^= (x << 15) & 0xEFC60000;
+    x ^= (x >> 18);
 
-    return z;
+    return x;
 }
 
 void mt19937_seed(mt19937_t* mt, mt19937_word_t seed) {
