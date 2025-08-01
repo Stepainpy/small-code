@@ -43,9 +43,8 @@ static void mt19937_round(mt19937_t* mt) {
     for (k = 0; k < 624; k++) {
         y = (mt->words[ k           ] & 0x80000000) |
             (mt->words[(k + 1) % 624] & 0x7FFFFFFF);
-        mt->words[k] =
-            mt->words[k + 397 - (k > 226) * 624] ^
-            (y >> 1) ^ ((y & 1) * 0x9908b0df);
+        mt->words[k] = mt->words[(k + 397) % 624] ^ (y >> 1);
+        if (y & 1) mt->words[k] ^= 0x9908b0df;
     }
 }
 
