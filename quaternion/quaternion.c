@@ -71,11 +71,12 @@ double qnorm(quaternion_t q) {
 }
 
 void fputq(quaternion_t q, FILE* file) {
-    fprintf(file, "%c%lg %c %lgi %c %lgj %c %lgk",
-        q.a < 0. ? '-' : '+', fabs(q.a),
-        q.b < 0. ? '-' : '+', fabs(q.b),
-        q.c < 0. ? '-' : '+', fabs(q.c),
-        q.d < 0. ? '-' : '+', fabs(q.d)
+    if (q.a < 0.) fputc('-', file);
+    fprintf(file, "%lg %c %lgi %c %lgj %c %lgk",
+        fabs(q.a), q.b < 0. ? '-' : '+',
+        fabs(q.b), q.c < 0. ? '-' : '+',
+        fabs(q.c), q.d < 0. ? '-' : '+',
+        fabs(q.d)
     );
 }
 
