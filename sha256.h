@@ -2,7 +2,6 @@
 #define SHA256_H
 
 #include <stddef.h>
-#include <limits.h>
 
 #ifndef SHA256_DEF
 #define SHA256_DEF
@@ -10,30 +9,28 @@
 
 #define SHA256_HASH_BYTE_WIDTH 32
 
-#if CHAR_BIT != 8
-#error "Non 8-bit byte"
-#endif
-
-typedef unsigned char sha256_byte_t;
-
-#if  ULONG_MAX == 0xFFFFFFFF
-typedef unsigned long sha256_word_t;
-#elif UINT_MAX == 0xFFFFFFFF
-typedef unsigned int  sha256_word_t;
-#else
-#error "Not found 32-bit integer type"
+#if !defined(UINT8_MAX) || !defined(UINT32_MAX)
+#  include <limits.h>
+#  if UCHAR_MAX == 0xFF
+typedef unsigned char uint8_t;
+#  endif
+#  if UINT_MAX == 0xFFFFFFFF
+typedef unsigned int  uint32_t;
+#  elif ULONG_MAX == 0xFFFFFFFF
+typedef unsigned long uint32_t;
+#  endif
 #endif
 
 typedef struct sha256_state_t {
-    sha256_word_t h[8];
-    sha256_word_t length_low;
-    sha256_word_t length_high;
-    sha256_byte_t input[64];
-    sha256_byte_t uploaded;
+    uint32_t h[8];
+    uint32_t length_low;
+    uint32_t length_high;
+    uint8_t input[64];
+    uint8_t uploaded;
 } sha256_state_t;
 
 typedef struct sha256_hash_t {
-    sha256_byte_t bytes[32];
+    uint8_t bytes[32];
 } sha256_hash_t;
 
 #ifdef __cplusplus
@@ -56,12 +53,12 @@ SHA256_DEF void sha256(const void* data, size_t size, sha256_hash_t* hash);
 
 #include <string.h>
 
-static sha256_word_t sha256_rotr(sha256_word_t n, int s) {
+static uint32_t sha256_rotr(uint32_t n, int s) {
     return n >> s | n << (32 - s);
 }
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-static sha256_word_t sha256_bswap(sha256_word_t n) {
+static uint32_t sha256_bswap(uint32_t n) {
     n = (n & 0xFFFF0000) >> 16 | (n & 0x0000FFFF) << 16;
     n = (n & 0xFF00FF00) >>  8 | (n & 0x00FF00FF) <<  8;
     return n;
@@ -73,7 +70,7 @@ static sha256_word_t sha256_bswap(sha256_word_t n) {
 #endif
 
 static void sha256_round(sha256_state_t* s) {
-    static const sha256_word_t sha256_k[64] = {
+    static const uint32_t sha256_k[64] = {
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
         0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
         0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -83,9 +80,9 @@ static void sha256_round(sha256_state_t* s) {
         0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
     };
-    sha256_word_t w[64]; size_t i;
-    sha256_word_t a, b, c, d, e, f, g, h;
-    sha256_word_t s0, s1, ch, ma, t1, t2;
+    uint32_t w[64]; size_t i;
+    uint32_t a, b, c, d, e, f, g, h;
+    uint32_t s0, s1, ch, ma, t1, t2;
 
     memcpy(w, s->input, sizeof s->input);
     memset(s->input, 0, sizeof s->input);
@@ -127,7 +124,7 @@ void sha256_begin(sha256_state_t* s) {
 }
 
 void sha256_load(sha256_state_t* s, const void* data, size_t size) {
-    size_t cap, min_size; sha256_word_t prev;
+    size_t cap, min_size; uint32_t prev;
     if (!s || (!data && size > 0)) return;
     while (size > 0) {
         cap = sizeof s->input - s->uploaded;
@@ -157,8 +154,8 @@ void sha256_end(sha256_state_t* s, sha256_hash_t* h) {
     s->length_high <<= 3;
     s->length_high |= s->length_low >> 29;
     s->length_low  <<= 3;
-    ((sha256_word_t*)s->input)[14] = sha256_bswap(s->length_high);
-    ((sha256_word_t*)s->input)[15] = sha256_bswap(s->length_low );
+    ((uint32_t*)s->input)[14] = sha256_bswap(s->length_high);
+    ((uint32_t*)s->input)[15] = sha256_bswap(s->length_low );
     sha256_round(s);
 
     for (i = 0; i < 8; i++) s->h[i] = sha256_bswap(s->h[i]);
