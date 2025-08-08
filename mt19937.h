@@ -1,32 +1,31 @@
 #ifndef MT19937_H
 #define MT19937_H
 
-#include <limits.h>
+#ifndef UINT32_MAX
+#  include <limits.h>
+#    if  UINT_MAX == 0xFFFFFFFF
+typedef unsigned int  uint32_t;
+#  elif ULONG_MAX == 0xFFFFFFFF
+typedef unsigned long uint32_t;
+#  endif
+#endif
 
 #ifndef MT19937_DEF
 #define MT19937_DEF
 #endif
 
-#if  ULONG_MAX == 0xFFFFFFFF
-typedef unsigned long mt19937_word_t;
-#elif UINT_MAX == 0xFFFFFFFF
-typedef unsigned int  mt19937_word_t;
-#else
-#error "Not found 32-bit integer type"
-#endif
-
 typedef struct mt19937_t {
-    mt19937_word_t words[624];
-    mt19937_word_t index;
+    uint32_t words[624];
+    uint32_t index;
 } mt19937_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MT19937_DEF mt19937_word_t mt19937(mt19937_t* mt);
-MT19937_DEF void mt19937_seed(mt19937_t* mt, mt19937_word_t seed);
-MT19937_DEF void mt19937_skip(mt19937_t* mt, mt19937_word_t skip);
+MT19937_DEF uint32_t mt19937(mt19937_t* mt);
+MT19937_DEF void mt19937_seed(mt19937_t* mt, uint32_t seed);
+MT19937_DEF void mt19937_skip(mt19937_t* mt, uint32_t skip);
 
 #ifdef __cplusplus
 }
@@ -37,7 +36,7 @@ MT19937_DEF void mt19937_skip(mt19937_t* mt, mt19937_word_t skip);
 #ifdef MT19937_IMPLEMENTATION
 
 static void mt19937_round(mt19937_t* mt) {
-    mt19937_word_t i, x;
+    uint32_t i, x;
     mt->index = 0;
 
     for (i = 0; i < 624; i++) {
@@ -48,8 +47,8 @@ static void mt19937_round(mt19937_t* mt) {
     }
 }
 
-mt19937_word_t mt19937(mt19937_t* mt) {
-    mt19937_word_t x;
+uint32_t mt19937(mt19937_t* mt) {
+    uint32_t x;
     if (mt->index >= 624)
         mt19937_round(mt);
 
@@ -62,8 +61,8 @@ mt19937_word_t mt19937(mt19937_t* mt) {
     return x;
 }
 
-void mt19937_seed(mt19937_t* mt, mt19937_word_t seed) {
-    mt19937_word_t i, x;
+void mt19937_seed(mt19937_t* mt, uint32_t seed) {
+    uint32_t i, x;
     mt->words[0] = seed;
     mt->index = 624;
 
@@ -76,7 +75,7 @@ void mt19937_seed(mt19937_t* mt, mt19937_word_t seed) {
     }
 }
 
-void mt19937_skip(mt19937_t* mt, mt19937_word_t skip) {
+void mt19937_skip(mt19937_t* mt, uint32_t skip) {
     while (skip > 624 - mt->index) {
         skip -= 624 - mt->index;
         mt19937_round(mt);
