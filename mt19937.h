@@ -23,9 +23,9 @@ typedef struct mt19937_t {
 extern "C" {
 #endif
 
-MT19937_DEF uint32_t mt19937_rand(mt19937_t* mt);
-MT19937_DEF void     mt19937_seed(mt19937_t* mt, uint32_t seed);
-MT19937_DEF void     mt19937_skip(mt19937_t* mt, uint32_t skip);
+MT19937_DEF uint32_t mtrand(mt19937_t* mt);
+MT19937_DEF void     mtseed(mt19937_t* mt, uint32_t seed);
+MT19937_DEF void     mtskip(mt19937_t* mt, uint32_t skip);
 
 #ifdef __cplusplus
 }
@@ -35,7 +35,7 @@ MT19937_DEF void     mt19937_skip(mt19937_t* mt, uint32_t skip);
 
 #ifdef MT19937_IMPLEMENTATION
 
-static void mt19937_step(mt19937_t* mt) {
+static void mtstep(mt19937_t* mt) {
     uint32_t i, x;
     mt->index = 0;
 
@@ -47,10 +47,10 @@ static void mt19937_step(mt19937_t* mt) {
     }
 }
 
-uint32_t mt19937_rand(mt19937_t* mt) {
+uint32_t mtrand(mt19937_t* mt) {
     uint32_t x;
     if (mt->index >= 624)
-        mt19937_step(mt);
+        mtstep(mt);
 
     x = mt->words[mt->index++];
     x ^= (x >> 11) & 0xFFFFFFFF;
@@ -61,7 +61,7 @@ uint32_t mt19937_rand(mt19937_t* mt) {
     return x;
 }
 
-void mt19937_seed(mt19937_t* mt, uint32_t seed) {
+void mtseed(mt19937_t* mt, uint32_t seed) {
     uint32_t i, x;
     mt->words[0] = seed;
     mt->index = 624;
@@ -75,10 +75,10 @@ void mt19937_seed(mt19937_t* mt, uint32_t seed) {
     }
 }
 
-void mt19937_skip(mt19937_t* mt, uint32_t skip) {
+void mtskip(mt19937_t* mt, uint32_t skip) {
     while (skip > 624 - mt->index) {
         skip -= 624 - mt->index;
-        mt19937_step(mt);
+        mtstep(mt);
     }
     mt->index += skip;
 }
