@@ -5,11 +5,6 @@
 
 void memswap(void* first, void* second, size_t count);
 
-#ifndef NO_SWAP_MACRO
-#define swap(a, b) memswap(&(a), &(b), \
-    sizeof(a) < sizeof(b) ? sizeof(a) : sizeof(b))
-#endif
-
 #endif /* MEMORY_SWAP_H */
 
 #ifdef MEMSWAP_IMPLEMENTATION
