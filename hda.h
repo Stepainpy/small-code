@@ -63,7 +63,8 @@
     hda_size(hda) += (size);                    \
 } while (0)
 
-#define hda_free(hda) do free( \
-    (size_t*)(void*)(hda) - !!(hda) * 2); while (0)
+#define hda_free(hda) do free(          \
+    (size_t*)(void*)(hda) - !!(hda) * 2 \
+); while (0)
 
 #endif /* HDA_H */
