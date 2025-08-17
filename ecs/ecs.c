@@ -100,11 +100,10 @@ ecs_t ecs_read_file(const char* filename) {
     str = ecs__create_with_cap(size + 1);
     if (!str) goto cleanup;
 
-    static char buffer[4096]; size_t rdlen;
-    do {
-        rdlen = fread(buffer, 1, sizeof buffer, file);
-        str = ecs_append_data(str, buffer, rdlen);
-    } while (str && rdlen == sizeof buffer);
+    ecs_hdr_t* hdr = ecs__get_header(str);
+    size = fread(str, 1, size, file);
+    hdr->size = size;
+    str[size] = '\0';
 
 cleanup:
     fclose(file);
