@@ -10,7 +10,7 @@ typedef char* ecs_t;
 size_t ecs_size(ecs_t str);
 size_t ecs_capacity(ecs_t str);
 
-/* Сreation and destruction */
+/* Creation and destruction */
 
 ecs_t ecs_create(void);
 ecs_t ecs_create_cstr(const char* cstr);
@@ -48,9 +48,8 @@ ecs_t ecs_clear(ecs_t str);
 ecs_t ecs_erase_char(ecs_t str, size_t index);
 ecs_t ecs_erase_data(ecs_t str, size_t index, size_t count);
 
-/* Neutral modifications */
+/* Positive/Neutral/Negative modifications */
 
-ecs_t ecs_replace(ecs_t str, char old, char new);
-ecs_t ecs_replace_first_n(ecs_t str, size_t count, char old, char new);
+ecs_t ecs_replace(ecs_t str, const char* old, const char* new);
 
 #endif /* EXTENDABLE_C_STRING_H */

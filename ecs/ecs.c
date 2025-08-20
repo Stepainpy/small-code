@@ -189,7 +189,7 @@ ecs_t ecs_insert_cstr(ecs_t str, size_t index, const char* cstr) {
 }
 
 ecs_t ecs_insert_data(ecs_t str, size_t index, const void* data, size_t size) {
-    if (!data || index >= ecs_size(str)) return str;
+    if (!data || index > ecs_size(str)) return str;
     str = ecs_reserve(str, ecs_size(str) + size);
     if (!str) return NULL;
     ecs_hdr_t* hdr = ecs__get_header(str);
@@ -210,24 +210,38 @@ ecs_t ecs_erase_char(ecs_t str, size_t index) {
 ecs_t ecs_erase_data(ecs_t str, size_t index, size_t count) {
     if (!str || index >= ecs_size(str)) return str;
     ecs_hdr_t* hdr = ecs__get_header(str);
-    if (index + count > hdr->size)
-        count = hdr->size - index;
-    memmove(str + index, str + index + count, count);
+    size_t ecnt = count;
+    if (index + count > hdr->size) ecnt = hdr->size - index;
+    memmove(str + index, str + index + ecnt, hdr->size - ecnt - index + 1);
     hdr->size -= count;
     return str;
 }
 
-ecs_t ecs_replace(ecs_t str, char old, char new) {
-    return ecs_replace_first_n(str, -1, old, new);
+static char* ecs__find_substr(char* str, size_t len, const char* sub, size_t sublen) {
+    for (char* end = str + len - sublen + 1; str < end; str++)
+        if (memcmp(str, sub, sublen) == 0) return str;
+    return NULL;
 }
 
-ecs_t ecs_replace_first_n(ecs_t str, size_t count, char old, char new) {
-    if (!str || old == new) return str;
+ecs_t ecs_replace(ecs_t str, const char* old, const char* new) {
+    if (!str || !old || !new || !(*old) || strcmp(old, new) == 0) return str;
     ecs_hdr_t* hdr = ecs__get_header(str);
-    while (count --> 0) {
-        char* pch = memchr(str, old, hdr->size);
-        if (!pch) break;
-        *pch = new;
+    size_t old_size = strlen(old);
+    size_t new_size = strlen(new);
+
+    char* begin = str;
+    while (1) {
+        char* place = ecs__find_substr(
+            begin, hdr->size - (begin - str), old, old_size);
+        if (!place) break;
+        str = ecs_erase_data(str, place - str, old_size);
+        if (new_size > 0) {
+            str = ecs_insert_cstr(str, place - str, new);
+            if (!str) break;
+            hdr = ecs__get_header(str);
+        }
+        begin = place + new_size;
     }
+
     return str;
 }
