@@ -12,7 +12,6 @@ typedef struct { size_t capacity, size; } ecs_hdr_t;
     ((ecs_hdr_t*)(void*)((str) - sizeof(ecs_hdr_t)))
 #define ecs__from_header(hdr) \
     ((ecs_t)(void*)(hdr) + sizeof(ecs_hdr_t))
-#define ecs__min(a, b) ((a) < (b) ? (a) : (b))
 
 size_t ecs_size(ecs_t str) {
     return str ? ecs__get_header(str)->size : 0;
@@ -151,21 +150,15 @@ ecs_t ecs_resize(ecs_t str, size_t size, char ph) {
 }
 
 ecs_t ecs_append_char(ecs_t str, char ch) {
-    return ecs_append_data(str, &ch, 1);
+    return ecs_insert_char(str, str ? ecs_size(str) : 0, ch);
 }
 
 ecs_t ecs_append_cstr(ecs_t str, const char* cstr) {
-    return ecs_append_data(str, cstr, cstr ? strlen(cstr) : 0);
+    return ecs_insert_cstr(str, str ? ecs_size(str) : 0, cstr);
 }
 
 ecs_t ecs_append_data(ecs_t str, const void* data, size_t size) {
-    if (!data) return str;
-    str = ecs_reserve(str, ecs_size(str) + size);
-    if (!str) return NULL;
-    ecs_hdr_t* hdr = ecs__get_header(str);
-    memcpy(str + hdr->size, data, size);
-    str[hdr->size += size] = '\0';
-    return str;
+    return ecs_insert_data(str, str ? ecs_size(str) : 0, data, size);
 }
 
 ecs_t ecs_prepend_char(ecs_t str, char ch) {
