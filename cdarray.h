@@ -17,9 +17,8 @@
  *   cdarr_free(xs);
  *
  * TODO:
- * 2. documentation comments
- * 1. insert/erase
- * 3. swap/copy
+ * 1. documentation comments
+ * 2. swap/copy
  */
 
 #ifndef C_DYNAMIC_ARRAY_H
@@ -104,7 +103,24 @@ typedef void (*cdutl_dtor_t)(void*);
 
 #define cdarr_push_back_many(arr, values, count) do { \
     cdarr_reserve(arr, cdarr_size(arr) + (count)); \
-    memcpy(arr + cdarr_size(arr), (values), (count) * sizeof *(arr)); \
+    memmove(arr + cdarr_size(arr), (values), (count) * sizeof *(arr)); \
+    cdarr_size(arr) += (count); \
+} while (0)
+
+#define cdarr_insert(arr, index, value) do { \
+    CDUTL_ASSERT(0 <= (index) && (index) <= cdarr_size(arr), "Index out of bounds"); \
+    cdarr_reserve(arr, cdarr_size(arr) + 1); \
+    memmove((arr) + (index) + 1, (arr) + (index), \
+        (cdarr_size(arr) - (index)) * sizeof *(arr)); \
+    (arr)[(index)] = (value); ++cdarr_size(arr); \
+} while (0)
+
+#define cdarr_insert_many(arr, index, values, count) do { \
+    CDUTL_ASSERT(0 <= (index) && (index) <= cdarr_size(arr), "Index out of bounds"); \
+    cdarr_reserve(arr, cdarr_size(arr) + (count)); \
+    memmove((arr) + (index) + (count), (arr) + (index), \
+        (cdarr_size(arr) - (index)) * sizeof *(arr)); \
+    memmove((arr) + (index), (values), (count) * sizeof *(arr)); \
     cdarr_size(arr) += (count); \
 } while (0)
 
@@ -118,6 +134,24 @@ typedef void (*cdutl_dtor_t)(void*);
     CDUTL_ASSERT(cdarr_size(arr) >= (count), "Deleting more than is available"); \
     for (i = cdarr_size(arr) - (count); cdarr_dtor(arr) && i < cdarr_size(arr); i++) \
         cdarr_dtor(arr)(arr + i); \
+    cdarr_size(arr) -= (count); \
+} while (0)
+
+#define cdarr_erase(arr, index) do { \
+    CDUTL_ASSERT(0 <= (index) && (index) < cdarr_size(arr), "Index out of bounds"); \
+    if (cdarr_dtor(arr)) cdarr_dtor(arr)(arr + (index)); \
+    memmove((arr) + (index), (arr) + (index) + 1, \
+        (cdarr_size(arr) - (index) - 1) * sizeof *(arr)); \
+    --cdarr_size(arr); \
+} while (0)
+
+#define cdarr_erase_many(arr, index, count) do { \
+    CDUTL_ASSERT(0 <= (index) && (index) < cdarr_size(arr), "Index out of bounds"); \
+    CDUTL_ASSERT(cdarr_size(arr) - (index) >= (count), "Deleting more than is available"); \
+    for (i = (index); cdarr_dtor(arr) && i < (index) + (count); i++) \
+        cdarr_dtor(arr)(arr + i); \
+    memmove((arr) + (index), (arr) + (index) + (count), \
+        (cdarr_size(arr) - (index) - (count)) * sizeof *(arr)); \
     cdarr_size(arr) -= (count); \
 } while (0)
 
