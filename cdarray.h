@@ -18,7 +18,6 @@
  *
  * TODO:
  * 1. documentation comments
- * 2. swap/copy
  */
 
 #ifndef C_DYNAMIC_ARRAY_H
@@ -82,6 +81,18 @@ typedef void (*cdutl_dtor_t)(void*);
     cdarr_clear(arr); \
     CDARR_FREE(cd__ptr_shift(arr, -CDARR_HEADER_SIZE)); \
     (arr) = NULL; \
+} while (0)
+
+#define cdarr_copy(dst, src) do { \
+    if (dst) cdarr_free(dst); \
+    cdarr_init(dst, cdarr_dtor(src)); \
+    cdarr_push_back_many(dst, src, cdarr_size(src)); \
+} while (0)
+
+#define cdarr_swap(fst, snd) do { \
+    void* tmp  = (fst); \
+         (fst) = (snd); \
+         (snd) =  tmp ; \
 } while (0)
 
 /* Memory management */
