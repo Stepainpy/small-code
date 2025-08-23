@@ -39,6 +39,11 @@
 #define CDARR_REALLOC realloc
 #endif
 
+#ifndef CDARR_FREE
+#include <stdlib.h>
+#define CDARR_FREE free
+#endif
+
 #ifndef CDUTL_ASSERT
 #include <assert.h>
 #define CDUTL_ASSERT(expr, msg) assert((expr) && (msg))
@@ -75,7 +80,7 @@ typedef void (*cdutl_dtor_t)(void*);
 
 #define cdarr_free(arr) do { \
     cdarr_clear(arr); \
-    free(cd__ptr_shift(arr, -CDARR_HEADER_SIZE)); \
+    CDARR_FREE(cd__ptr_shift(arr, -CDARR_HEADER_SIZE)); \
     (arr) = NULL; \
 } while (0)
 
