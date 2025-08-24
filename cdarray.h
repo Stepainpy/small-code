@@ -1,5 +1,5 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *                        C Dynamic array                      *
+ *                       C Dynamic array                       *
  * Set of function-macros for create and using dynamic arrays  *
  * (further da). For storage information about da use memory   *
  * before data.                                                *
@@ -25,26 +25,22 @@
 #include <string.h>
 
 #ifndef CDARR_INIT_CAP
-#define CDARR_INIT_CAP 16
+#  define CDARR_INIT_CAP 16
 #else
 #  if CDARR_INIT_CAP < 2
-#  error "The capacity value must be greater than one"
+#    error "The capacity value must be greater than one"
 #  endif
 #endif
 
-#ifndef CDARR_REALLOC
-#include <stdlib.h>
-#define CDARR_REALLOC realloc
-#endif
-
-#ifndef CDARR_FREE
-#include <stdlib.h>
-#define CDARR_FREE free
+#ifndef CDARR_CUSTOM_ALLOC
+#  include <stdlib.h>
+#  define CDARR_REALLOC realloc
+#  define CDARR_FREE    free
 #endif
 
 #ifndef CDUTL_ASSERT
-#include <assert.h>
-#define CDUTL_ASSERT(expr, msg) assert((expr) && (msg))
+#  include <assert.h>
+#  define CDUTL_ASSERT(expr, msg) assert((expr) && (msg))
 #endif
 
 typedef void (*cdutl_dtor_t)(void*);
