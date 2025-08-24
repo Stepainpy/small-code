@@ -71,6 +71,23 @@ typedef void (*cdutl_dtor_t)(void*);
 #define cdarr_capacity(arr) (*(      size_t*)cd__ptr_shift(arr, -2 * sizeof(size_t)))
 #define cdarr_dtor(arr)     (*(cdutl_dtor_t*)cd__ptr_shift(arr, -CDARR_HEADER_SIZE ))
 
+/* Access to elements */
+
+#ifndef CDARR_NO_SIZE_ASSERT
+#  define cdarr_first(arr) ((arr)[       0       ])
+#  define cdarr_last(arr)  ((arr)[cdarr_size(arr)])
+#else
+#  define cdarr_first(arr) (CDUTL_ASSERT(cdarr_size(arr) > 0, \
+    "There are no elements in the array"), (arr)[       0       ])
+#  define cdarr_last(arr)  (CDUTL_ASSERT(cdarr_size(arr) > 0, \
+    "There are no elements in the array"), (arr)[cdarr_size(arr)])
+#endif
+
+/* Iterators */
+
+#define cdarr_begin(arr) (arr)
+#define cdarr_end(arr)  ((arr) + cdarr_size(arr))
+
 /* Creation/Destruction */
 
 /* Initializes the array from NULL and pointer to destructor */
