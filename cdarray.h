@@ -74,13 +74,13 @@ typedef void (*cdutl_dtor_t)(void*);
 /* Access to elements */
 
 #ifndef CDARR_NO_SIZE_ASSERT
-#  define cdarr_first(arr) ((arr)[       0       ])
-#  define cdarr_last(arr)  ((arr)[cdarr_size(arr)])
+#  define cdarr_first(arr) ((arr)[         0         ])
+#  define cdarr_last(arr)  ((arr)[cdarr_size(arr) - 1])
 #else
 #  define cdarr_first(arr) (CDUTL_ASSERT(cdarr_size(arr) > 0, \
-    "There are no elements in the array"), (arr)[       0       ])
+    "There are no elements in the array"), (arr)[         0         ])
 #  define cdarr_last(arr)  (CDUTL_ASSERT(cdarr_size(arr) > 0, \
-    "There are no elements in the array"), (arr)[cdarr_size(arr)])
+    "There are no elements in the array"), (arr)[cdarr_size(arr) - 1])
 #endif
 
 /* Iterators */
