@@ -76,7 +76,7 @@ typedef void (*cdutl_dtor_t)(void*);
 
 /* Access to elements */
 
-#ifndef CDARR_NO_SIZE_ASSERT
+#ifndef CDARR_ENABLE_SIZE_ASSERT
 #  define cdarr_first(arr) ((arr)[         0         ])
 #  define cdarr_last(arr)  ((arr)[cdarr_size(arr) - 1])
 #else
