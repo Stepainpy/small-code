@@ -1,24 +1,23 @@
-/* C Dynamic array
- * Set of function-macros for create and using dynamic arrays (further da).
- * For storage information about da use memory before data.
- *
- * Memory look like:
- *       === the direction of the ascending addresses ===>
- * ... | dtor | capacity | size | item 0 | item 1 | item 2 | ...
- *                              ^
- *                       pointer by data
- *
- * User code example:
- *   int* xs = NULL;
- *   cdarr_init(xs, NULL);
- *   cdarr_push_back(xs, 42);
- *   cdarr_push_back(xs, 69);
- *   assert(xs[0] == 42 && xs[1] == 69);
- *   cdarr_free(xs);
- *
- * TODO:
- * 1. documentation comments
- */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *                        C Dynamic array                      *
+ * Set of function-macros for create and using dynamic arrays  *
+ * (further da). For storage information about da use memory   *
+ * before data.                                                *
+ *                                                             *
+ * Memory look like:                                           *
+ *      === the direction of the ascending addresses ===>      *
+ *  ... dtor | capacity | size | item 0 | item 1 | item 2 ...  *
+ *                             ^                               *
+ *                      pointer by data                        *
+ *                                                             *
+ * User code example:                                          *
+ *   int* xs = NULL;                                           *
+ *   cdarr_init(xs, NULL);                                     *
+ *   cdarr_push_back(xs, 42);                                  *
+ *   cdarr_push_back(xs, 69);                                  *
+ *   assert(xs[0] == 42 && xs[1] == 69);                       *
+ *   cdarr_free(xs);                                           *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #ifndef C_DYNAMIC_ARRAY_H
 #define C_DYNAMIC_ARRAY_H
