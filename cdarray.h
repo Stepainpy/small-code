@@ -17,9 +17,6 @@
  *   cdarr_push_back(xs, 69);                                  *
  *   assert(xs[0] == 42 && xs[1] == 69);                       *
  *   cdarr_free(xs);                                           *
- *                                                             *
- * Also has C Dynamic stack (cdstk).                           *
- * For enable define macro CDARR_ENABLE_STACK                  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #ifndef C_DYNAMIC_ARRAY_H
@@ -240,16 +237,5 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
         cdarr_dtor(arr)(arr + i); \
     cdarr_size(arr) = 0; \
 } while (0)
-
-/* Stack adaptor */
-
-#ifdef CDARR_ENABLE_STACK
-#  define cdstk_init cdarr_init
-#  define cdstk_free cdarr_free
-#  define cdstk_size cdarr_size
-#  define cdstk_top  cdarr_last
-#  define cdstk_push cdarr_push_back
-#  define cdstk_pop  cdarr_pop_back
-#endif
 
 #endif /* C_DYNAMIC_ARRAY_H */
