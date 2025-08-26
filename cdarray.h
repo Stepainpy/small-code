@@ -43,22 +43,22 @@
 /* Assert expression like standard 'assert'.
  * Expect two arguments, expression and message (string literal)
  */
-#ifndef CDUTL_ASSERT
+#ifndef CDARR_ASSERT
 #  include <assert.h>
-#  define CDUTL_ASSERT(expr, msg) assert((expr) && (msg))
+#  define CDARR_ASSERT(expr, msg) assert((expr) && (msg))
 #endif
 
 /* Type of destructor for element type */
-typedef void (*cdutl_dtor_t)(void*);
+typedef void (*cdarr_dtor_t)(void*);
 
 /* Implementation detail */
 
-#define CDARR_HEADER_SIZE (sizeof(size_t) * 2 + sizeof(cdutl_dtor_t))
+#define CDARR_HEADER_SIZE (sizeof(size_t) * 2 + sizeof(cdarr_dtor_t))
 #define cd__ptr_shift(ptr, offset) ((void*)((char*)(void*)(ptr) + (offset)))
 #define cd__realloc_with_new_cap(arr, new_cap) do { \
     if (arr) (arr) = cd__ptr_shift(arr, -CDARR_HEADER_SIZE); \
     (arr) = CDARR_REALLOC((arr), CDARR_HEADER_SIZE + (new_cap) * sizeof *(arr)); \
-    CDUTL_ASSERT((arr) != NULL, "Couldn't allocate memory"); \
+    CDARR_ASSERT((arr) != NULL, "Couldn't allocate memory"); \
     (arr) = cd__ptr_shift(arr, CDARR_HEADER_SIZE); \
     cdarr_capacity(arr) = (new_cap); \
 } while (0)
@@ -69,7 +69,7 @@ typedef void (*cdutl_dtor_t)(void*);
 
 #define cdarr_size(arr)     (*(      size_t*)cd__ptr_shift(arr, -1 * sizeof(size_t)))
 #define cdarr_capacity(arr) (*(      size_t*)cd__ptr_shift(arr, -2 * sizeof(size_t)))
-#define cdarr_dtor(arr)     (*(cdutl_dtor_t*)cd__ptr_shift(arr, -CDARR_HEADER_SIZE ))
+#define cdarr_dtor(arr)     (*(cdarr_dtor_t*)cd__ptr_shift(arr, -CDARR_HEADER_SIZE ))
 
 /* Access to elements */
 
@@ -77,9 +77,9 @@ typedef void (*cdutl_dtor_t)(void*);
 #  define cdarr_first(arr) ((arr)[         0         ])
 #  define cdarr_last(arr)  ((arr)[cdarr_size(arr) - 1])
 #else
-#  define cdarr_first(arr) (CDUTL_ASSERT(cdarr_size(arr) > 0, \
+#  define cdarr_first(arr) (CDARR_ASSERT(cdarr_size(arr) > 0, \
     "There are no elements in the array"), (arr)[         0         ])
-#  define cdarr_last(arr)  (CDUTL_ASSERT(cdarr_size(arr) > 0, \
+#  define cdarr_last(arr)  (CDARR_ASSERT(cdarr_size(arr) > 0, \
     "There are no elements in the array"), (arr)[cdarr_size(arr) - 1])
 #endif
 
@@ -97,7 +97,7 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 /* Initializes the array from NULL and pointer to destructor */
 #define cdarr_init(arr, dtor_func) do { \
     cd__realloc_with_new_cap(arr, CDARR_INIT_CAP); \
-    cdarr_dtor(arr) = (cdutl_dtor_t)(dtor_func); \
+    cdarr_dtor(arr) = (cdarr_dtor_t)(dtor_func); \
     cdarr_size(arr) = 0; \
 } while (0)
 
@@ -160,7 +160,7 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
  * If 'index' equal size of array, then equal cdarr_push_back
  */
 #define cdarr_insert(arr, index, value) do { \
-    CDUTL_ASSERT(0 <= (index) && (index) <= cdarr_size(arr), "Index out of bounds"); \
+    CDARR_ASSERT(0 <= (index) && (index) <= cdarr_size(arr), "Index out of bounds"); \
     cdarr_reserve(arr, cdarr_size(arr) + 1); \
     memmove((arr) + (index) + 1, (arr) + (index), \
         (cdarr_size(arr) - (index)) * sizeof *(arr)); \
@@ -171,7 +171,7 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
  * If 'index' equal size of array, then equal cdarr_push_back
  */
 #define cdarr_insert_many(arr, index, values, count) do { \
-    CDUTL_ASSERT(0 <= (index) && (index) <= cdarr_size(arr), "Index out of bounds"); \
+    CDARR_ASSERT(0 <= (index) && (index) <= cdarr_size(arr), "Index out of bounds"); \
     cdarr_reserve(arr, cdarr_size(arr) + (count)); \
     memmove((arr) + (index) + (count), (arr) + (index), \
         (cdarr_size(arr) - (index)) * sizeof *(arr)); \
@@ -181,14 +181,14 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 
 /* Deletes the last element of the array */
 #define cdarr_pop_back(arr) do { \
-    CDUTL_ASSERT(cdarr_size(arr) > 0, "Deleting from an empty array"); \
+    CDARR_ASSERT(cdarr_size(arr) > 0, "Deleting from an empty array"); \
     if (cdarr_dtor(arr)) cdarr_dtor(arr)(arr + cdarr_size(arr) - 1); \
     --cdarr_size(arr); \
 } while (0)
 
 /* Deletes the last elements of the array with 'count' */
 #define cdarr_pop_back_many(arr, count) do { size_t cd__i; \
-    CDUTL_ASSERT(cdarr_size(arr) >= (count), "Deleting more than is available"); \
+    CDARR_ASSERT(cdarr_size(arr) >= (count), "Deleting more than is available"); \
     for (cd__i = cdarr_size(arr) - (count); \
         cdarr_dtor(arr) && cd__i < cdarr_size(arr); cd__i++) \
         cdarr_dtor(arr)(arr + cd__i); \
@@ -197,7 +197,7 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 
 /* Deletes an array element by 'index' */
 #define cdarr_erase(arr, index) do { \
-    CDUTL_ASSERT(0 <= (index) && (index) < cdarr_size(arr), "Index out of bounds"); \
+    CDARR_ASSERT(0 <= (index) && (index) < cdarr_size(arr), "Index out of bounds"); \
     if (cdarr_dtor(arr)) cdarr_dtor(arr)(arr + (index)); \
     memmove((arr) + (index), (arr) + (index) + 1, \
         (cdarr_size(arr) - (index) - 1) * sizeof *(arr)); \
@@ -206,8 +206,8 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 
 /* Deletes an array elements by 'index' */
 #define cdarr_erase_many(arr, index, count) do { size_t cd__i; \
-    CDUTL_ASSERT(0 <= (index) && (index) < cdarr_size(arr), "Index out of bounds"); \
-    CDUTL_ASSERT(cdarr_size(arr) - (index) >= (count), "Deleting more than is available"); \
+    CDARR_ASSERT(0 <= (index) && (index) < cdarr_size(arr), "Index out of bounds"); \
+    CDARR_ASSERT(cdarr_size(arr) - (index) >= (count), "Deleting more than is available"); \
     for (cd__i = (index); cdarr_dtor(arr) && cd__i < (index) + (count); cd__i++) \
         cdarr_dtor(arr)(arr + cd__i); \
     memmove((arr) + (index), (arr) + (index) + (count), \
