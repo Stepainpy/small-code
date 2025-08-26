@@ -91,6 +91,10 @@ typedef void (*cdutl_dtor_t)(void*);
 #define cdarr_begin(arr) (arr)
 #define cdarr_end(arr)  ((arr) + cdarr_size(arr))
 
+/* Declare for-loop with variable 'iter'  */
+#define cdarr_foreach(arr, iter) \
+for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
+
 /* Creation/Destruction */
 
 /* Initializes the array from NULL and pointer to destructor */
