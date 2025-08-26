@@ -117,26 +117,28 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 
 /* Swapping two arrays (pointers) */
 #define cdarr_swap(fst, snd) do { \
-    void* tmp  = (fst); \
-         (fst) = (snd); \
-         (snd) =  tmp ; \
+    void* cd__t; \
+    cd__t = (fst); \
+    (fst) = (snd); \
+    (snd) = cd__t; \
 } while (0)
 
 /* Memory management */
 
 /* Reserves memory for at least 'expect' items */
 #define cdarr_reserve(arr, expect) do { \
-    size_t new_cap = cdarr_capacity(arr); \
-    if (new_cap >= (expect)) break; \
-    while (new_cap < (expect)) new_cap += new_cap / 2; \
-    cd__realloc_with_new_cap(arr, new_cap); \
+    size_t cd__newcap = cdarr_capacity(arr); \
+    if (cd__newcap >= (expect)) break; \
+    while (cd__newcap < (expect)) \
+        cd__newcap += cd__newcap / 2; \
+    cd__realloc_with_new_cap(arr, cd__newcap); \
 } while (0)
 
 /* Frees up the free capacity */
 #define cdarr_shrink_to_fit(arr) do { \
-    size_t new_cap = cdarr_size(arr); \
-    new_cap = new_cap > 2 ? new_cap : 2; \
-    cd__realloc_with_new_cap(arr, new_cap); \
+    size_t cd__newcap = cdarr_size(arr); \
+    cd__newcap = cd__newcap > 2 ? cd__newcap : 2; \
+    cd__realloc_with_new_cap(arr, cd__newcap); \
 } while (0)
 
 /* Items management */
@@ -185,10 +187,11 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 } while (0)
 
 /* Deletes the last elements of the array with 'count' */
-#define cdarr_pop_back_many(arr, count) do { size_t i; \
+#define cdarr_pop_back_many(arr, count) do { size_t cd__i; \
     CDUTL_ASSERT(cdarr_size(arr) >= (count), "Deleting more than is available"); \
-    for (i = cdarr_size(arr) - (count); cdarr_dtor(arr) && i < cdarr_size(arr); i++) \
-        cdarr_dtor(arr)(arr + i); \
+    for (cd__i = cdarr_size(arr) - (count); \
+        cdarr_dtor(arr) && cd__i < cdarr_size(arr); cd__i++) \
+        cdarr_dtor(arr)(arr + cd__i); \
     cdarr_size(arr) -= (count); \
 } while (0)
 
@@ -202,11 +205,11 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 } while (0)
 
 /* Deletes an array elements by 'index' */
-#define cdarr_erase_many(arr, index, count) do { \
+#define cdarr_erase_many(arr, index, count) do { size_t cd__i; \
     CDUTL_ASSERT(0 <= (index) && (index) < cdarr_size(arr), "Index out of bounds"); \
     CDUTL_ASSERT(cdarr_size(arr) - (index) >= (count), "Deleting more than is available"); \
-    for (i = (index); cdarr_dtor(arr) && i < (index) + (count); i++) \
-        cdarr_dtor(arr)(arr + i); \
+    for (cd__i = (index); cdarr_dtor(arr) && cd__i < (index) + (count); cd__i++) \
+        cdarr_dtor(arr)(arr + cd__i); \
     memmove((arr) + (index), (arr) + (index) + (count), \
         (cdarr_size(arr) - (index) - (count)) * sizeof *(arr)); \
     cdarr_size(arr) -= (count); \
@@ -220,21 +223,21 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 #define cdarr_resize(arr, new_size, dflt_value) do { \
     if ((new_size) == cdarr_size(arr)) break; \
     else if ((new_size) > cdarr_size(arr)) { \
-        size_t i; cdarr_reserve(arr, (new_size)); \
-        for (i = cdarr_size(arr); i < (new_size); i++) \
-            (arr)[i] = (dflt_value); \
+        size_t cd__i; cdarr_reserve(arr, (new_size)); \
+        for (cd__i = cdarr_size(arr); cd__i < (new_size); cd__i++) \
+            (arr)[cd__i] = (dflt_value); \
     } else { \
-        size_t i = (new_size); \
-        for (; cdarr_dtor(arr) && i < cdarr_size(arr); i++) \
-            cdarr_dtor(arr)(arr + i); \
+        size_t cd__i = (new_size); \
+        for (; cdarr_dtor(arr) && cd__i < cdarr_size(arr); cd__i++) \
+            cdarr_dtor(arr)(arr + cd__i); \
     } \
     cdarr_size(arr) = (new_size); \
 } while (0)
 
 /* Deletes all elements from array */
-#define cdarr_clear(arr) do { size_t i = 0; \
-    for (; cdarr_dtor(arr) && i < cdarr_size(arr); i++) \
-        cdarr_dtor(arr)(arr + i); \
+#define cdarr_clear(arr) do { size_t cd__i = 0; \
+    for (; cdarr_dtor(arr) && cd__i < cdarr_size(arr); cd__i++) \
+        cdarr_dtor(arr)(arr + cd__i); \
     cdarr_size(arr) = 0; \
 } while (0)
 
