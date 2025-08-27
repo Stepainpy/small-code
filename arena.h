@@ -21,11 +21,11 @@ struct arena { char *begin, *end; };
 arena_t* arena_init(size_t cap) {
     arena_t* arena = NULL;
     char* mem = malloc(sizeof *arena + cap);
-    if (!mem) return arena;
-    arena = (arena_t*)(void*)mem;
-    arena->begin = mem + sizeof *arena;
-    arena->end   = mem + sizeof *arena + cap;
-    return arena;
+    if (mem) {
+        arena = (arena_t*)(void*)mem;
+        arena->begin = mem + sizeof *arena;
+        arena->end   = mem + sizeof *arena + cap;
+    } return arena;
 }
 
 void arena_free(arena_t* arena) {
@@ -45,8 +45,7 @@ void* arena_alloc_align(arena_t* arena, size_t size, size_t align) {
     if (arena->begin <= arena->end && (size_t)(arena->end - arena->begin) >= size) {
         mem = arena->begin;
         arena->begin += size;
-    }
-    return mem;
+    } return mem;
 }
 
 #endif /* ARENA_IMPLEMENTATION */
