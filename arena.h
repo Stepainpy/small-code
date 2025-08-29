@@ -28,9 +28,7 @@ arena_t* arena_init(size_t cap) {
     } return arena;
 }
 
-void arena_free(arena_t* arena) {
-    free(arena);
-}
+void arena_free(arena_t* arena) { free(arena); }
 
 void* arena_alloc(arena_t* arena, size_t size) {
     return arena_alloc_align(arena, size, 1);
@@ -38,11 +36,12 @@ void* arena_alloc(arena_t* arena, size_t size) {
 
 void* arena_alloc_align(arena_t* arena, size_t size, size_t align) {
     void* mem = NULL;
-    if (!arena || size == 0) return NULL;
-    if (!(align && (align & (align - 1)) == 0)) return NULL;
+    if (!arena || size == 0) return mem;
+    if (!(align && (align & (align - 1)) == 0)) return mem;
     if ((uintptr_t)arena->begin % align != 0)
         arena->begin += align - (uintptr_t)arena->begin % align;
-    if (arena->begin <= arena->end && (size_t)(arena->end - arena->begin) >= size) {
+    if (arena->begin <= arena->end &&
+        (size_t)(arena->end - arena->begin) >= size) {
         mem = arena->begin;
         arena->begin += size;
     } return mem;
