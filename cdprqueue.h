@@ -3,6 +3,13 @@
 
 #include "cdarray.h"
 
+/* Type of comparison function for element type
+ * Is three-way comparison and if
+ * 2 > 5 => cmp(2, 5) > 0
+ * 3 = 3 => cmp(3, 3) = 0
+ * 5 < 2 => cmp(5, 2) < 0
+ * then be max-heap (from big to small)
+ */
 typedef int (*cdprq_cmp_t)(const void*, const void*);
 
 /* Implementation detail */
@@ -42,6 +49,9 @@ typedef int (*cdprq_cmp_t)(const void*, const void*);
 
 /* Creation/Destruction */
 
+/* Initializes the queue from NULL, pointer to
+ * destructor and pointer to comparison function
+ */
 #define cdprq_init(prq, dtor_func, cmp_func) do { \
     cd__realloc_with_new_cap(prq, CDARR_INIT_CAP, CDPRQ_HEADER_SIZE); \
     cdarr_dtor(prq) = (cdarr_dtor_t)(dtor_func); \
@@ -49,6 +59,7 @@ typedef int (*cdprq_cmp_t)(const void*, const void*);
     cdarr_size(prq) = 0; \
 } while (0)
 
+/* Frees up the memory allocated for the queue */
 #define cdprq_free(prq) do { \
     cdarr_clear(prq); \
     CDARR_FREE(cd__ptr_shift(prq, -CDPRQ_HEADER_SIZE)); \
@@ -57,6 +68,7 @@ typedef int (*cdprq_cmp_t)(const void*, const void*);
 
 /* Items management */
 
+/* Adds an item to the queue */
 #define cdprq_push(prq, value) do { \
     size_t cd__cur, cd__pnt; \
     cdarr_push_back(prq, value); \
@@ -68,8 +80,9 @@ typedef int (*cdprq_cmp_t)(const void*, const void*);
     } \
 } while (0)
 
+/* Deletes an item from the queue */
 #define cdprq_pop(prq) do { \
-    CDARR_ASSERT(cdarr_size(prq) > 0, "Popping from an empty array"); \
+    CDARR_ASSERT(cdarr_size(prq) > 0, "Deleting from an empty array"); \
     cd__swap_by_ptr(prq, (prq) + cdarr_size(prq) - 1); \
     cdarr_pop_back(prq); cd__heapify(prq, 0); \
 } while (0)
