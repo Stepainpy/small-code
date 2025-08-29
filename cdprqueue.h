@@ -1,3 +1,13 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * C Dynamic priority queue. Adaptor for cdarray.    *
+ *                                                   *
+ * Memory look like:                                 *
+ * === the direction of the ascending addresses ===> *
+ *   ... cmp | dtor | capacity | size | item 0 ...   *
+ *                                    ^              *
+ *                             pointer by data       *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #ifndef C_DYNAMIC_PRIORITY_QUEUE_H
 #define C_DYNAMIC_PRIORITY_QUEUE_H
 
