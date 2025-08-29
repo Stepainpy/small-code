@@ -55,11 +55,11 @@ typedef void (*cdarr_dtor_t)(void*);
 
 #define CDARR_HEADER_SIZE (sizeof(size_t) * 2 + sizeof(cdarr_dtor_t))
 #define cd__ptr_shift(ptr, offset) ((void*)((char*)(void*)(ptr) + (offset)))
-#define cd__realloc_with_new_cap(arr, new_cap) do { \
-    if (arr) (arr) = cd__ptr_shift(arr, -CDARR_HEADER_SIZE); \
-    (arr) = CDARR_REALLOC((arr), CDARR_HEADER_SIZE + (new_cap) * sizeof *(arr)); \
+#define cd__realloc_with_new_cap(arr, new_cap, hdr_sz) do { \
+    if (arr) (arr) = cd__ptr_shift(arr, -(hdr_sz)); \
+    (arr) = CDARR_REALLOC((arr), (hdr_sz) + (new_cap) * sizeof *(arr)); \
     CDARR_ASSERT((arr) != NULL, "Couldn't allocate memory"); \
-    (arr) = cd__ptr_shift(arr, CDARR_HEADER_SIZE); \
+    (arr) = cd__ptr_shift(arr, hdr_sz); \
     cdarr_capacity(arr) = (new_cap); \
 } while (0)
 
@@ -96,7 +96,7 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
 
 /* Initializes the array from NULL and pointer to destructor */
 #define cdarr_init(arr, dtor_func) do { \
-    cd__realloc_with_new_cap(arr, CDARR_INIT_CAP); \
+    cd__realloc_with_new_cap(arr, CDARR_INIT_CAP, CDARR_HEADER_SIZE); \
     cdarr_dtor(arr) = (cdarr_dtor_t)(dtor_func); \
     cdarr_size(arr) = 0; \
 } while (0)
@@ -131,14 +131,14 @@ for (iter = cdarr_begin(arr); iter < cdarr_end(arr); iter++)
     if (cd__newcap >= (expect)) break; \
     while (cd__newcap < (expect)) \
         cd__newcap += cd__newcap / 2; \
-    cd__realloc_with_new_cap(arr, cd__newcap); \
+    cd__realloc_with_new_cap(arr, cd__newcap, CDARR_HEADER_SIZE); \
 } while (0)
 
 /* Frees up the free capacity */
 #define cdarr_shrink_to_fit(arr) do { \
     size_t cd__newcap = cdarr_size(arr); \
     cd__newcap = cd__newcap > 2 ? cd__newcap : 2; \
-    cd__realloc_with_new_cap(arr, cd__newcap); \
+    cd__realloc_with_new_cap(arr, cd__newcap, CDARR_HEADER_SIZE); \
 } while (0)
 
 /* Items management */
