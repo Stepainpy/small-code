@@ -15,9 +15,9 @@
 
 /* Type of comparison function for element type
  * Is three-way comparison and if
- * 2 > 5 => cmp(2, 5) > 0
+ * 2 < 5 => cmp(2, 5) < 0
  * 3 = 3 => cmp(3, 3) = 0
- * 5 < 2 => cmp(5, 2) < 0
+ * 5 > 2 => cmp(5, 2) > 0
  * then be max-heap (from big to small)
  */
 typedef int (*cdprq_cmp_t)(const void*, const void*);
