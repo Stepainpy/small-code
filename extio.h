@@ -9,7 +9,7 @@ while ((charvar = fgets(stream)) != EOF)
 int  fpeek(FILE* stream);
 long fsize(FILE* stream);
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199409L
+#if __STDC_VERSION__ >= 199409L
 #include <wchar.h>
 
 #define floopw(charvar, stream) \
@@ -27,7 +27,7 @@ int fpeek(FILE* stream) {
     return ungetc(c, stream);
 }
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199409L
+#if __STDC_VERSION__ >= 199409L
 wint_t fpeekw(FILE* stream) {
     wint_t wc = fgetwc(stream);
     return ungetwc(wc, stream);

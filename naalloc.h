@@ -16,7 +16,7 @@ void* naalloc_fn(size_t size, const char* file, int line);
 void* naalloc_fn(size_t size, const char* file, int line) {
     void* memory = malloc(size);
     if (memory) return memory;
-    fprintf(stderr, "%s:%i: No memory\n", file, line);
+    fprintf(stderr, "%s:%i: Couldn't allocate memory\n", file, line);
     exit(1);
 }
 

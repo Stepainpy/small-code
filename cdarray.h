@@ -34,10 +34,12 @@
 #endif
 
 /* Fuctions for memory allocation */
-#ifndef CDARR_CUSTOM_ALLOC
+#if !defined(CDARR_REALLOC) && !defined(CDARR_FREE)
 #  include <stdlib.h>
 #  define CDARR_REALLOC realloc
 #  define CDARR_FREE    free
+#elif defined(CDARR_REALLOC) != defined(CDARR_FREE)
+#  error "Partial definition for allocation"
 #endif
 
 /* Assert expression like standard 'assert'.
