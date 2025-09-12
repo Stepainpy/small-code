@@ -9,14 +9,20 @@
 
 #define SHA256_HASH_BYTE_WIDTH 32
 
-#if !defined(UINT8_MAX) || !defined(UINT32_MAX)
+#ifndef UINT8_MAX
 #  include <limits.h>
-#  if UCHAR_MAX == 0xFF
+#  define UINT8_MAX 0xFF
+#  if UCHAR_MAX == UINT8_MAX
 typedef unsigned char uint8_t;
 #  endif
-#  if UINT_MAX == 0xFFFFFFFF
+#endif
+
+#ifndef UINT32_MAX
+#  include <limits.h>
+#  define UINT32_MAX 0xFFFFFFFF
+#    if  UINT_MAX == UINT32_MAX
 typedef unsigned int  uint32_t;
-#  elif ULONG_MAX == 0xFFFFFFFF
+#  elif ULONG_MAX == UINT32_MAX
 typedef unsigned long uint32_t;
 #  endif
 #endif

@@ -3,9 +3,10 @@
 
 #ifndef UINT32_MAX
 #  include <limits.h>
-#    if  UINT_MAX == 0xFFFFFFFF
+#  define UINT32_MAX 0xFFFFFFFF
+#    if  UINT_MAX == UINT32_MAX
 typedef unsigned int  uint32_t;
-#  elif ULONG_MAX == 0xFFFFFFFF
+#  elif ULONG_MAX == UINT32_MAX
 typedef unsigned long uint32_t;
 #  endif
 #endif
