@@ -74,39 +74,39 @@ static uint64_t sha3_256_bswap(uint64_t n) {
 #elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #  define sha3_256_bswap(n) (n)
 #else
-#  error "Unknown endianess"
+#  error "Unknown endian"
 #endif
 
-static const uint64_t sha3_256_round_const[24] = {
-    0x0000000000000001ULL, 0x0000000000008082ULL,
-    0x800000000000808aULL, 0x8000000080008000ULL,
-    0x000000000000808bULL, 0x0000000080000001ULL,
-    0x8000000080008081ULL, 0x8000000000008009ULL,
-    0x000000000000008aULL, 0x0000000000000088ULL,
-    0x0000000080008009ULL, 0x000000008000000aULL,
-    0x000000008000808bULL, 0x800000000000008bULL,
-    0x8000000000008089ULL, 0x8000000000008003ULL,
-    0x8000000000008002ULL, 0x8000000000000080ULL,
-    0x000000000000800aULL, 0x800000008000000aULL,
-    0x8000000080008081ULL, 0x8000000000008080ULL,
-    0x0000000080000001ULL, 0x8000000080008008ULL
-};
-
-static const int sha3_256_rotc[24] = {
-     1,  3,  6, 10, 15, 21, 28, 36,
-    45, 55,  2, 14, 27, 41, 56,  8,
-    25, 43, 62, 18, 39, 61, 20, 44
-};
-
-static const int sha3_256_piln[24] = {
-    10,  7, 11, 17, 18,  3,  5, 16,
-     8, 21, 24,  4, 15, 23, 19, 13,
-    12,  2, 20, 14, 22,  9,  6,  1
-};
-
 static void sha3_256_round(sha3_256_state_t* s) {
-    size_t ri, i, j; uint64_t* in = (uint64_t*)s->input;
-    uint64_t tmp[5], t;
+    static const uint64_t rc[24] = {
+        0x0000000000000001ULL, 0x0000000000008082ULL,
+        0x800000000000808aULL, 0x8000000080008000ULL,
+        0x000000000000808bULL, 0x0000000080000001ULL,
+        0x8000000080008081ULL, 0x8000000000008009ULL,
+        0x000000000000008aULL, 0x0000000000000088ULL,
+        0x0000000080008009ULL, 0x000000008000000aULL,
+        0x000000008000808bULL, 0x800000000000008bULL,
+        0x8000000000008089ULL, 0x8000000000008003ULL,
+        0x8000000000008002ULL, 0x8000000000000080ULL,
+        0x000000000000800aULL, 0x800000008000000aULL,
+        0x8000000080008081ULL, 0x8000000000008080ULL,
+        0x0000000080000001ULL, 0x8000000080008008ULL
+    };
+
+    static const int rotc[24] = {
+         1,  3,  6, 10, 15, 21, 28, 36,
+        45, 55,  2, 14, 27, 41, 56,  8,
+        25, 43, 62, 18, 39, 61, 20, 44
+    };
+
+    static const int piln[24] = {
+        10,  7, 11, 17, 18,  3,  5, 16,
+         8, 21, 24,  4, 15, 23, 19, 13,
+        12,  2, 20, 14, 22,  9,  6,  1
+    };
+
+    uint64_t tmp[5], t, *in = (uint64_t*)s->input;
+    size_t ri, i, j;
 
     for (i = 0; i < sizeof s->input / sizeof(uint64_t); i++)
         s->state.d1[i] ^= sha3_256_bswap(in[i]);
@@ -129,9 +129,9 @@ static void sha3_256_round(sha3_256_state_t* s) {
 
         t = s->state.d1[1];
         for (i = 0; i < 24; i++) {
-            j = sha3_256_piln[i];
+            j = piln[i];
             tmp[0] = s->state.d1[j];
-            s->state.d1[j] = sha3_256_rotl(t, sha3_256_rotc[i]);
+            s->state.d1[j] = sha3_256_rotl(t, rotc[i]);
             t = tmp[0];
         }
 
@@ -142,7 +142,7 @@ static void sha3_256_round(sha3_256_state_t* s) {
                 s->state.d2[j][i] ^= ~tmp[(i + 1) % 5] & tmp[(i + 2) % 5];
         }
 
-        s->state.d1[0] ^= sha3_256_round_const[ri];
+        s->state.d1[0] ^= rc[ri];
     }
 }
 

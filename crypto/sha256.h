@@ -70,22 +70,31 @@ static uint32_t sha256_bswap(uint32_t n) {
     return n;
 }
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-#define sha256_bswap
+#  define sha256_bswap
 #else
-#error "Unknown endianess"
+#  error "Unknown endian"
 #endif
 
 static void sha256_round(sha256_state_t* s) {
-    static const uint32_t sha256_k[64] = {
-        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+    static const uint32_t k[64] = {
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+        0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+        0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+        0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+        0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+        0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
     };
+
     uint32_t w[64]; size_t i;
     uint32_t a, b, c, d, e, f, g, h;
     uint32_t s0, s1, ch, ma, t1, t2;
@@ -109,7 +118,7 @@ static void sha256_round(sha256_state_t* s) {
         s1 = sha256_rotr(e, 6) ^ sha256_rotr(e, 11) ^ sha256_rotr(e, 25);
         ma = (a & b) ^ (a & c) ^ (b & c);
         ch = (e & f) ^ (~e & g);
-        t1 = h + s1 + ch + sha256_k[i] + w[i];
+        t1 = h + s1 + ch + k[i] + w[i];
         t2 = s0 + ma;
 
         h = g; g = f; f = e; e = t1 +  d;
@@ -130,20 +139,21 @@ void sha256_begin(sha256_state_t* s) {
 }
 
 void sha256_load(sha256_state_t* s, const void* data, size_t size) {
-    size_t cap, min_size; uint32_t prev;
+    size_t cap, min; uint32_t prev;
     if (!s || (!data && size > 0)) return;
     while (size > 0) {
         cap = sizeof s->input - s->uploaded;
-        min_size = cap < size ? cap : size;
-        memcpy(s->input + s->uploaded, data, min_size);
+        min = size < cap ? size : cap;
+        memcpy(s->input + s->uploaded, data, min);
 
-        data = (char*)data + min_size;
-        s->uploaded += min_size;
-        size -= min_size;
+        data = (char*)data + min;
+        s->uploaded += min;
+        size -= min;
 
         prev = s->length_low;
-        s->length_low += min_size;
-        if (prev > s->length_low) ++s->length_high;
+        s->length_low += min * 8;
+        if (prev > s->length_low)
+            ++s->length_high;
 
         if (s->uploaded >= sizeof s->input)
             sha256_round(s);
@@ -157,9 +167,6 @@ void sha256_end(sha256_state_t* s, sha256_hash_t* h) {
     s->input[s->uploaded++] = 0x80;
     if (s->uploaded > 56) sha256_round(s);
 
-    s->length_high <<= 3;
-    s->length_high |= s->length_low >> 29;
-    s->length_low  <<= 3;
     ((uint32_t*)s->input)[14] = sha256_bswap(s->length_high);
     ((uint32_t*)s->input)[15] = sha256_bswap(s->length_low );
     sha256_round(s);
