@@ -1,57 +1,61 @@
-#ifndef POOL_ALLOC_H
-#define POOL_ALLOC_H
+#ifndef POOL_ALLOCATOR_H
+#define POOL_ALLOCATOR_H
 
 #include <stddef.h>
 
-typedef struct {
-    unsigned char* chunks;
-    size_t chunk_size;
-    size_t count;
-    void* head;
-} pool_t;
+typedef struct pool pool_t;
 
-pool_t pool_init(void* buffer, size_t length, size_t sizeof_type);
+pool_t* pool_init(size_t count, size_t sizeof_obj);
 void* pool_alloc(pool_t* pool);
 void pool_free(pool_t* pool, void* ptr);
+void pool_free_all(pool_t* pool);
 
-#endif // POOL_ALLOC_H
+#endif /* POOL_ALLOCATOR_H */
 
 #ifdef POOL_IMPLEMENTATION
 
-#include <string.h>
+#include <stdlib.h>
 
-pool_t pool_init(void* buffer, size_t length, size_t sizeof_type) {
-    pool_t out = {0};
-    size_t chsz = sizeof(void*) > sizeof_type ? sizeof(void*) : sizeof_type;
-    out.count = length / chsz;
+struct pool {
+    struct pool_chunk {
+        struct pool_chunk* next;
+    }* head;
+};
 
-    if (out.count == 0) return out;
-    out.chunks = out.head = buffer;
-    out.chunk_size = chsz;
+pool_t* pool_init(size_t count, size_t objsz) {
+    pool_t* pool = NULL; char* mem; size_t memsz;
+    if (!count || !objsz) return pool;
 
-    for (size_t i = 0; i < out.count; i++) {
-        unsigned char* chunk = out.chunks + i * out.chunk_size;
-        *(void**)chunk = (i == out.count - 1)
-            ? NULL : chunk + out.chunk_size;
-    }
+    objsz = objsz > sizeof(struct pool_chunk)
+          ? objsz : sizeof(struct pool_chunk);
+    memsz = sizeof *pool * 2 + objsz * count;
 
-    return out;
+    if ((mem = malloc(memsz)) != NULL) {
+        void *curr = mem + memsz, *prev = NULL;
+        while (count --> 0) {
+            curr = (char*)curr - objsz;
+            ((struct pool_chunk*)curr)->next = prev;
+            prev = curr;
+        }
+        pool = (pool_t*)(void*)mem;
+        pool->head = prev;
+    } return pool;
+}
+
+void pool_free_all(pool_t* pool) { free(pool); }
+
+void pool_free(pool_t* pool, void* ptr) {
+    if (!pool || !ptr) return;
+    ((struct pool_chunk*)ptr)->next = pool->head;
+    pool->head = ptr;
 }
 
 void* pool_alloc(pool_t* pool) {
-    if (!pool || !pool->head) return NULL;
-    void* out = pool->head;
-    pool->head = *(void**)pool->head;
-    return memset(out, 0, pool->chunk_size);
+    void* mem = NULL;
+    if (!pool || !pool->head) return mem;
+    mem = pool->head;
+    pool->head = pool->head->next;
+    return mem;
 }
 
-void pool_free(pool_t* pool, void* ptr) {
-    if (!pool) return;
-    if ((unsigned char*)ptr <  pool->chunks ||
-        (unsigned char*)ptr >= pool->chunks +
-        pool->count * pool->chunk_size) return;
-
-    *(void**)ptr = pool->head; pool->head = ptr;
-}
-
-#endif // POOL_IMPLEMENTATION
+#endif /* POOL_IMPLEMENTATION */
