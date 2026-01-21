@@ -234,6 +234,11 @@ static bool jipushentry(jentry_t entry, jobject_t* obj, size_t* cap) {
     return true;
 }
 
+static int jientrycmp(const void* lhs, const void* rhs) {
+    const jentry_t *l = lhs, *r = rhs;
+    return strcmp(l->key.ptr, r->key.ptr);
+}
+
 static jvalue_t* jiparsevalue(jreader_t rdr) {
     jvalue_t* value = malloc(sizeof *value);
     if (!value) return NULL;
@@ -310,6 +315,8 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
                 sizeof *value->as.object.entries * value->as.object.count);
             if (!cropped) goto error;
             value->as.object.entries = cropped;
+            qsort(value->as.object.entries, value->as.object.count,
+                sizeof *value->as.object.entries, jientrycmp);
 
             break;
         error_obj:
@@ -435,10 +442,11 @@ jvalue_t* jparse_file(const char* filename) {
 
 jvalue_t* jat(jvalue_t* obj, const char* key) {
     if (!key || !obj || obj->type != JT_OBJECT) return NULL;
-    for (size_t i = 0; i < obj->as.object.count; i++)
-        if (strcmp(key, obj->as.object.entries[i].key.ptr) == 0)
-            return obj->as.object.entries[i].value;
-    return NULL;
+    jentry_t kentry = {0}; kentry.key.ptr = (char*)key;
+    jentry_t* find = bsearch(&kentry,
+        obj->as.object.entries, obj->as.object.count,
+        sizeof *obj->as.object.entries, jientrycmp);
+    return find ? find->value : NULL;
 }
 
 jvalue_t* (jpath)(jvalue_t* value, size_t count, ...) {
