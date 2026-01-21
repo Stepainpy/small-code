@@ -80,6 +80,7 @@ void jfree(jvalue_t* value);
 
 #ifdef JSON_IMPLEMENTATION
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
