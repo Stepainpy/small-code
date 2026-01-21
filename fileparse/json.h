@@ -1,7 +1,7 @@
 #ifndef JAVASCRIPT_OBJECT_NOTATION_H
 #define JAVASCRIPT_OBJECT_NOTATION_H
 
-#include <stdio.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 #define JC_TAB_SIZE     4
@@ -55,8 +55,8 @@ struct jvalue {
 };
 
 typedef struct jreader {
-    int (*next)(void*); // char if success or negative value if error
-    int (*peek)(void*); // char if success or negative value if error
+    int (*next)(void*); // character on success, negative value on failure
+    int (*peek)(void*); // character on success, negative value on failure
     void* ctx;
 } jreader_t;
 
@@ -77,6 +77,7 @@ void jfree(jvalue_t* value);
 
 #ifdef JSON_IMPLEMENTATION
 
+#include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
