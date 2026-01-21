@@ -69,7 +69,7 @@ jvalue_t* jat(jvalue_t* object, const char* key);
 jvalue_t* jpath(jvalue_t* value, size_t count, ...);
 #define ji__Arg_count(_1, _2, _3, _4, _5, _6, _7, _8, _9, _a, _b, _c, _d, _e, _f, n, ...) n
 #define ji__arg_count(...) ji__Arg_count(__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, _)
-#define jpath(object, ...) jpath((object), ji__arg_count(__VA_ARGS__), __VA_ARGS__)
+#define jpath(value, ...) jpath((value), ji__arg_count(__VA_ARGS__), __VA_ARGS__)
 
 void jprint(jvalue_t* value, unsigned level);
 #define jprint(value) jprint((value), 0)
