@@ -66,7 +66,7 @@ jvalue_t* jparse_file(const char* filename);
 
 jvalue_t* jat(jvalue_t* object, const char* key);
 
-jvalue_t* jpath(jvalue_t* value, size_t count, ...);
+jvalue_t* jpath(jvalue_t* value, size_t depth, ...);
 #define ji__Arg_count(_1, _2, _3, _4, _5, _6, _7, _8, _9, _a, _b, _c, _d, _e, _f, n, ...) n
 #define ji__arg_count(...) ji__Arg_count(__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, _)
 #define jpath(value, ...) jpath((value), ji__arg_count(__VA_ARGS__), __VA_ARGS__)
@@ -449,12 +449,11 @@ jvalue_t* jat(jvalue_t* obj, const char* key) {
     return find ? find->value : NULL;
 }
 
-jvalue_t* (jpath)(jvalue_t* value, size_t count, ...) {
+jvalue_t* (jpath)(jvalue_t* value, size_t depth, ...) {
     va_list args;
-    va_start(args, count);
+    va_start(args, depth);
 
-    while (count --> 0) {
-        if (!value) goto error;
+    while (value && depth --> 0) {
         /*  */ if (value->type == JT_OBJECT) {
             const char* key = va_arg(args, const char*);
             value = jat(value, key);
