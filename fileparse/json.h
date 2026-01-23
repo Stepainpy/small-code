@@ -22,35 +22,30 @@ typedef enum jtype {
     JT_OBJECT
 } jtype_t;
 
-typedef struct jstring {
-    char*  ptr;
-    size_t len;
-} jstring_t;
-
 typedef struct jarray {
     jvalue_t** values;
-    size_t     count;
+    size_t count;
 } jarray_t;
 
 typedef struct jentry {
-    jstring_t key;
+    const char* key;
     jvalue_t* value;
 } jentry_t;
 
 typedef struct jobject {
     jentry_t* entries;
-    size_t    count;
+    size_t count;
 } jobject_t;
 
 struct jvalue {
     jtype_t type;
     union {
-        bool      boolean;
-        double    number;
-        long long integer;
-        jstring_t string;
-        jarray_t  array;
-        jobject_t object;
+        bool        boolean;
+        double      number;
+        long long   integer;
+        const char* string;
+        jarray_t    array;
+        jobject_t   object;
     } as;
 };
 
@@ -121,93 +116,98 @@ static void jiskipws(jreader_t rdr) {
     }
 }
 
-static bool jipushchar(int ch, jstring_t* str, size_t* cap) {
-    if (str->len >= *cap) {
-        *cap += *cap ? *cap / 2 : JC_INIT_STR_CAP;
-        void* new = realloc(str->ptr, *cap);
-        if (!new) return false;
-        str->ptr = new;
-    }
+typedef struct { char* ptr; size_t len, cap; } jisb_t;
 
-    str->ptr[str->len++] = (unsigned char)ch;
+static bool jisbrequire(jisb_t* sb, size_t require) {
+    if (sb->len + require > sb->cap) {
+        sb->cap += sb->cap ? sb->cap / 2 : JC_INIT_STR_CAP;
+        void* new = realloc(sb->ptr, sb->cap);
+        if (!new) return false;
+        sb->ptr = new;
+    }
     return true;
 }
 
-static bool jipushutf8(unsigned cp, jstring_t* str, size_t* cap) {
+static bool jipushchar(int ch, jisb_t* sb) {
+    if (!jisbrequire(sb, 1)) return false;
+    sb->ptr[sb->len++] = (unsigned char)ch;
+    return true;
+}
+
+static bool jipushutf8(unsigned cp, jisb_t* sb) {
     int count_bytes = 0;
     /**/ if (cp < 0x080) count_bytes = 1;
     else if (cp < 0x800) count_bytes = 2;
     else                 count_bytes = 3;
 
-    if (str->len + count_bytes > *cap) {
-        *cap += *cap ? *cap / 2 : JC_INIT_STR_CAP;
-        void* new = realloc(str->ptr, *cap);
-        if (!new) return false;
-        str->ptr = new;
-    }
+    if (!jisbrequire(sb, count_bytes)) return false;
 
     switch (count_bytes) {
         case 1:
-            str->ptr[str->len++] = cp;
+            sb->ptr[sb->len++] = cp;
             break;
         case 2:
-            str->ptr[str->len++] = 0xC0 | cp >> 6;
-            str->ptr[str->len++] = 0x80 | (cp & 63);
+            sb->ptr[sb->len++] = 0xC0 | cp >> 6;
+            sb->ptr[sb->len++] = 0x80 | (cp & 63);
             break;
         case 3:
-            str->ptr[str->len++] = 0xE0 | cp >> 12;
-            str->ptr[str->len++] = 0x80 | ((cp >> 6) & 63);
-            str->ptr[str->len++] = 0x80 | (cp & 63);
+            sb->ptr[sb->len++] = 0xE0 | cp >> 12;
+            sb->ptr[sb->len++] = 0x80 | ((cp >> 6) & 63);
+            sb->ptr[sb->len++] = 0x80 | (cp & 63);
             break;
     }
 
     return true;
 }
 
-static bool jiparsekeyword(jreader_t rdr, const char* kw) {
-    while (*kw) if (rdr.next(rdr.ctx) != *kw++) return false;
-    return jiisdelim(rdr.peek(rdr.ctx));
-}
-
-static bool jiparsestring(jreader_t rdr, jstring_t* str, bool inentry) {
-    size_t cap = 0; int ch;
-    if (rdr.next(rdr.ctx) != '"') return false;
+static bool jiparsestring(jreader_t rdr, const char** strptr, bool inentry) {
+    int ch; jisb_t sb = {0};
+    if (rdr.next(rdr.ctx) != '"') goto error;
     ch = rdr.next(rdr.ctx);
     while (ch != '"') {
-        if (ch < ' ') return false;
+        if (ch < ' ') goto error;
         if (ch == '\\')
             switch (rdr.next(rdr.ctx)) {
-                case '"' : if (!jipushchar( '"', str, &cap)) { return false; } break;
-                case '\\': if (!jipushchar('\\', str, &cap)) { return false; } break;
-                case '/' : if (!jipushchar( '/', str, &cap)) { return false; } break;
-                case 'b' : if (!jipushchar('\b', str, &cap)) { return false; } break;
-                case 'f' : if (!jipushchar('\f', str, &cap)) { return false; } break;
-                case 'n' : if (!jipushchar('\n', str, &cap)) { return false; } break;
-                case 'r' : if (!jipushchar('\r', str, &cap)) { return false; } break;
-                case 't' : if (!jipushchar('\t', str, &cap)) { return false; } break;
+                case '"' : if (!jipushchar( '"', &sb)) { goto error; } break;
+                case '\\': if (!jipushchar('\\', &sb)) { goto error; } break;
+                case '/' : if (!jipushchar( '/', &sb)) { goto error; } break;
+                case 'b' : if (!jipushchar('\b', &sb)) { goto error; } break;
+                case 'f' : if (!jipushchar('\f', &sb)) { goto error; } break;
+                case 'n' : if (!jipushchar('\n', &sb)) { goto error; } break;
+                case 'r' : if (!jipushchar('\r', &sb)) { goto error; } break;
+                case 't' : if (!jipushchar('\t', &sb)) { goto error; } break;
                 case 'u': {
                     unsigned hex = 0; int digit;
                     for (size_t i = 0; i < 4; i++)
                         if (jiishex(digit = rdr.next(rdr.ctx)))
                             hex = hex << 4 | jifromhex(digit);
-                        else return false;
-                    if (!jipushutf8(hex, str, &cap)) return false;
+                        else goto error;
+                    if (!jipushutf8(hex, &sb)) goto error;
                 } break;
-                default: return false;
+                default: goto error;
             }
         else
-            if (!jipushchar(ch, str, &cap)) return false;
+            if (!jipushchar(ch, &sb)) goto error;
         ch = rdr.next(rdr.ctx);
     }
 
     ch = rdr.peek(rdr.ctx);
-    if (!jiisdelim(ch) && (!inentry || ch != ':')) return false;
-    if (!jipushchar('\0', str, &cap)) return false;
+    if (!jiisdelim(ch) && (!inentry || ch != ':')) goto error;
+    if (!jipushchar('\0', &sb)) goto error;
 
-    void* cropped = realloc(str->ptr, str->len--);
-    if (!cropped) return false;
-    str->ptr = cropped;
+    void* cropped = realloc(sb.ptr, sb.len);
+    if (!cropped) goto error;
+    *strptr = cropped;
+
     return true;
+error:
+    free(sb.ptr);
+    return false;
+}
+
+static bool jiparsekeyword(jreader_t rdr, const char* kw) {
+    while (*kw) if (rdr.next(rdr.ctx) != *kw++) return false;
+    return jiisdelim(rdr.peek(rdr.ctx));
 }
 
 static bool jipushvalue(jvalue_t* value, jarray_t* arr, size_t* cap) {
@@ -236,7 +236,7 @@ static bool jipushentry(jentry_t entry, jobject_t* obj, size_t* cap) {
 
 static int jientrycmp(const void* lhs, const void* rhs) {
     const jentry_t *l = lhs, *r = rhs;
-    return strcmp(l->key.ptr, r->key.ptr);
+    return strcmp(l->key, r->key);
 }
 
 static jvalue_t* jiparsevalue(jreader_t rdr) {
@@ -320,7 +320,7 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
 
             break;
         error_obj:
-            free(entry.key.ptr);
+            free((void*)entry.key);
             jfree(entry.value);
             goto error;
         } break;
@@ -402,22 +402,19 @@ jvalue_t* jparse(jreader_t rdr) {
 }
 
 static int jirdrstrnext(void* ptr) {
-    union { void* v; jstring_t* s; } conv = {.v = ptr};
-    if (conv.s->len == 0) return -1;
-    return --conv.s->len, *conv.s->ptr++;
+    union { void* v; const char** s; } conv = {.v = ptr};
+    return **conv.s ? *(*conv.s)++ : -1;
 }
 
 static int jirdrstrpeek(void* ptr) {
-    union { void* v; jstring_t* s; } conv = {.v = ptr};
-    if (conv.s->len == 0) return -1;
-    return *conv.s->ptr;
+    union { void* v; const char** s; } conv = {.v = ptr};
+    return **conv.s ? **conv.s : -1;
 }
 
 jvalue_t* jparse_cstr(const char* str) {
     if (!str) return NULL;
-    jstring_t span = {(char*)str, strlen(str)};
     return jparse((jreader_t){
-        jirdrstrnext, jirdrstrpeek, &span
+        jirdrstrnext, jirdrstrpeek, &str
     });
 }
 
@@ -442,7 +439,7 @@ jvalue_t* jparse_file(const char* filename) {
 
 jvalue_t* jat(jvalue_t* obj, const char* key) {
     if (!key || !obj || obj->type != JT_OBJECT) return NULL;
-    jentry_t kentry = {0}; kentry.key.ptr = (char*)key;
+    jentry_t kentry = {0}; kentry.key = (char*)key;
     jentry_t* find = bsearch(&kentry,
         obj->as.object.entries, obj->as.object.count,
         sizeof *obj->as.object.entries, jientrycmp);
@@ -479,7 +476,7 @@ void (jprint)(jvalue_t* value, unsigned level) {
         case JT_BOOLEAN: fputs(value->as.boolean ? "true" : "false", stdout); break;
         case JT_INTEGER: printf("%lli", value->as.integer); break;
         case JT_NUMBER: printf("%lg", value->as.number); break;
-        case JT_STRING: printf("\"%s\"", value->as.string.ptr); break;
+        case JT_STRING: printf("\"%s\"", value->as.string); break;
         case JT_ARRAY: {
             putchar('[');
             if (value->as.array.count == 0) { putchar(']'); break; }
@@ -498,7 +495,7 @@ void (jprint)(jvalue_t* value, unsigned level) {
             putchar('\n');
             for (size_t i = 0; i < value->as.object.count; i++) {
                 jentry_t entry = value->as.object.entries[i];
-                printf("%*s\"%s\": ", (level + 1) * JC_TAB_SIZE, "", entry.key.ptr);
+                printf("%*s\"%s\": ", (level + 1) * JC_TAB_SIZE, "", entry.key);
                 (jprint)(entry.value, level + 1);
                 if (i < value->as.object.count - 1) putchar(',');
                 putchar('\n');
@@ -514,7 +511,7 @@ void jfree(jvalue_t* value) {
         case JT_NULL: case JT_BOOLEAN:
         case JT_INTEGER: case JT_NUMBER: break;
 
-        case JT_STRING: free(value->as.string.ptr); break;
+        case JT_STRING: free((void*)value->as.string); break;
         case JT_ARRAY: {
             for (size_t i = 0; i < value->as.array.count; i++)
                 jfree(value->as.array.values[i]);
@@ -522,7 +519,7 @@ void jfree(jvalue_t* value) {
         } break;
         case JT_OBJECT: {
             for (size_t i = 0; i < value->as.object.count; i++) {
-                free(value->as.object.entries[i].key.ptr);
+                free((void*)value->as.object.entries[i].key);
                 jfree(value->as.object.entries[i].value);
             }
             free(value->as.object.entries);
