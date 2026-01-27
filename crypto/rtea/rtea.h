@@ -38,6 +38,14 @@ typedef enum {
     RTEA_MODE_PCBC
 } rtea_mode_t;
 
+typedef enum {
+    RTEA_ERR_NOT_FULLY_READ = -4,
+    RTEA_ERR_UNKNOWN_MODE   = -3,
+    RTEA_ERR_NULL_PTR       = -2,
+    RTEA_ERR_FAIL_WRITE     = -1,
+    RTEA_ERR_OK             =  0
+} rtea_error_t;
+
 typedef struct {
     size_t (*rdfn)(      void* dst, size_t size, size_t count, void* ctx);
     size_t (*wrfn)(const void* src, size_t size, size_t count, void* ctx);
