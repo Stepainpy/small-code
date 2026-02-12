@@ -40,8 +40,8 @@
  *     X[0]       X[1]       X[2]       X[3]
  */
 
-#ifndef CLEFIA_H
-#define CLEFIA_H
+#ifndef CLEFIA_BLOCK_CIPHER_H
+#define CLEFIA_BLOCK_CIPHER_H
 
 typedef struct clefia_context_t clefia_context_t;
 
@@ -51,4 +51,4 @@ void clefia_release_context(clefia_context_t* ctx);
 void clefia_block_encode(void* dest, const void* src, const clefia_context_t* ctx);
 void clefia_block_decode(void* dest, const void* src, const clefia_context_t* ctx);
 
-#endif /* CLEFIA_H */
+#endif /* CLEFIA_BLOCK_CIPHER_H */
