@@ -153,7 +153,7 @@ static void clefiai_GFN4_inv(clefia_block_t out, const clefia_block_t in, const 
     memcpy(out, T, 16);
 }
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 static clefia_word_t clefiai_bswap(clefia_word_t x) {
     x = (x & 0xFFFF0000) >> 16 | (x & 0x0000FFFF) << 16;
     x = (x & 0xFF00FF00) >>  8 | (x & 0x00FF00FF) <<  8;
@@ -162,11 +162,8 @@ static clefia_word_t clefiai_bswap(clefia_word_t x) {
 #endif
 
 static void clefiai_write_to_block(clefia_block_t dst, const void* src) {
-    clefia_word_t temp;
     memcpy(dst, src, 16);
-    temp = dst[0]; dst[0] = dst[3]; dst[3] = temp;
-    temp = dst[1]; dst[1] = dst[2]; dst[2] = temp;
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     dst[0] = clefiai_bswap(dst[0]);
     dst[1] = clefiai_bswap(dst[1]);
     dst[2] = clefiai_bswap(dst[2]);
@@ -175,17 +172,14 @@ static void clefiai_write_to_block(clefia_block_t dst, const void* src) {
 }
 
 static void clefiai_read_from_block(void* dst, const clefia_block_t src) {
-    clefia_word_t temp;
     clefia_block_t T;
     memcpy(T, src, 16);
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     T[0] = clefiai_bswap(T[0]);
     T[1] = clefiai_bswap(T[1]);
     T[2] = clefiai_bswap(T[2]);
     T[3] = clefiai_bswap(T[3]);
 #endif
-    temp = T[0]; T[0] = T[3]; T[3] = temp;
-    temp = T[1]; T[1] = T[2]; T[2] = temp;
     memcpy(dst, T, 16);
 }
 
@@ -199,6 +193,7 @@ static void clefiai_perm_block(clefia_block_t out, const clefia_block_t in) {
 
 static void clefiai_init_key128(clefia_context_t* ctx, const void* key) {
     clefia_block_t K, L, T; int i;
+
     clefiai_write_to_block(K, key);
 
     ctx->rounds = 18;
@@ -234,12 +229,10 @@ static void clefiai_init_key192(clefia_context_t* ctx, const void* key) {
     clefia_block_t KL, KR, LL, LR, T;
     clefia_chunk_t K, L; int i;
 
-    clefiai_write_to_block(KL, (const char*)key + 8);
-    clefiai_write_to_block(KR, key);
-    KR[0] =  KR[2];
-    KR[1] =  KR[3];
-    KR[2] = ~KL[0];
-    KR[3] = ~KL[1];
+    clefiai_write_to_block(KL, key);
+    clefiai_write_to_block(KR, (const char*)key + 8);
+    KR[0] = KR[2]; KR[2] = ~KL[0];
+    KR[1] = KR[3]; KR[3] = ~KL[1];
 
     ctx->rounds = 22;
     ctx->WK[0] = KL[0] ^ KR[0];
@@ -291,8 +284,8 @@ static void clefiai_init_key256(clefia_context_t* ctx, const void* key) {
     clefia_block_t KL, KR, LL, LR, T;
     clefia_chunk_t K, L; int i;
 
-    clefiai_write_to_block(KL, (const char*)key + 16);
-    clefiai_write_to_block(KR, key);
+    clefiai_write_to_block(KL, key);
+    clefiai_write_to_block(KR, (const char*)key + 16);
 
     ctx->rounds = 26;
     ctx->WK[0] = KL[0] ^ KR[0];
