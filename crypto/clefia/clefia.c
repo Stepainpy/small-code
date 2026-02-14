@@ -1,7 +1,5 @@
 #include "clefia.h"
-#include <limits.h>
 #include <string.h>
-#include <stdlib.h>
 
 #   if UCHAR_MAX == 0xFF
 typedef unsigned char clefia_byte_t;
@@ -9,23 +7,9 @@ typedef unsigned char clefia_byte_t;
 #error Not found 8-bit integer
 #endif
 
-#   if  UINT_MAX == 0xFFFFFFFF
-typedef unsigned int  clefia_word_t;
-# elif ULONG_MAX == 0xFFFFFFFF
-typedef unsigned long clefia_word_t;
-# else
-#error Not found 32-bit integer
-#endif
-
 typedef clefia_byte_t clefia_brick_t[4];
 typedef clefia_word_t clefia_block_t[4];
 typedef clefia_word_t clefia_chunk_t[8];
-
-struct clefia_context_t {
-    clefia_word_t WK[ 4];
-    clefia_word_t RK[52];
-    clefia_word_t rounds;
-};
 
 #define                    clefiai_gf_by_1( x ) (x)
 static const clefia_byte_t clefiai_gf_by_2[256];
@@ -333,25 +317,14 @@ static void clefiai_init_key256(clefia_context_t* ctx, const void* key) {
     }
 }
 
-clefia_context_t* clefia_init_context(const void* key, int bits) {
-    clefia_context_t* ctx = NULL;
-
-    if (bits != 128 && bits != 192 && bits != 256) return ctx;
-
-    ctx = malloc(sizeof *ctx);
-    if (!ctx) return ctx;
-    memset(ctx, 0, sizeof *ctx);
-
+int clefia_init_context(clefia_context_t* ctx, const void* key, int bits) {
     switch (bits) {
-        case 128: clefiai_init_key128(ctx, key); break;
-        case 192: clefiai_init_key192(ctx, key); break;
-        case 256: clefiai_init_key256(ctx, key); break;
+        case 128: clefiai_init_key128(ctx, key); return 0;
+        case 192: clefiai_init_key192(ctx, key); return 0;
+        case 256: clefiai_init_key256(ctx, key); return 0;
+        default :                                return 1;
     }
-
-    return ctx;
 }
-
-void clefia_release_context(clefia_context_t* ctx) { free(ctx); }
 
 void clefia_block_encode(void* dest, const void* src, const clefia_context_t* ctx) {
     clefia_block_t out, in;

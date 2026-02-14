@@ -43,10 +43,23 @@
 #ifndef CLEFIA_BLOCK_CIPHER_H
 #define CLEFIA_BLOCK_CIPHER_H
 
-typedef struct clefia_context_t clefia_context_t;
+#include <limits.h>
 
-clefia_context_t* clefia_init_context(const void* key, int key_bits);
-void clefia_release_context(clefia_context_t* ctx);
+#   if  UINT_MAX == 0xFFFFFFFFu
+typedef unsigned int  clefia_word_t;
+# elif ULONG_MAX == 0xFFFFFFFFul
+typedef unsigned long clefia_word_t;
+# else
+#error Not found 32-bit integer
+#endif
+
+typedef struct clefia_context_t {
+    clefia_word_t RK[52];
+    clefia_word_t WK[ 4];
+    clefia_word_t rounds;
+} clefia_context_t;
+
+int clefia_init_context(clefia_context_t* ctx, const void* key, int key_bits);
 
 void clefia_block_encode(void* dest, const void* src, const clefia_context_t* ctx);
 void clefia_block_decode(void* dest, const void* src, const clefia_context_t* ctx);
