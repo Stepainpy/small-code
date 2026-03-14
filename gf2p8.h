@@ -11,10 +11,14 @@ gf28_t gf28_mul(gf28_t a, gf28_t b);
 gf28_t gf28_div(gf28_t a, gf28_t b);
 gf28_t gf28_pow(gf28_t a, gf28_t b);
 
+gf28_t gf28_sqrt(gf28_t x);
+
 gf28_t gf28_invp(gf28_t x,           gf28_t poly);
 gf28_t gf28_mulp(gf28_t a, gf28_t b, gf28_t poly);
 gf28_t gf28_divp(gf28_t a, gf28_t b, gf28_t poly);
 gf28_t gf28_powp(gf28_t a, gf28_t b, gf28_t poly);
+
+gf28_t gf28_sqrtp(gf28_t x, gf28_t poly);
 
 #endif /* GALOIS_FIELD_2P8_H */
 
@@ -45,6 +49,10 @@ gf28_t gf28_invp(gf28_t x, gf28_t ip) {
     return gf28_powp(x, 254, ip);
 }
 
+gf28_t gf28_sqrtp(gf28_t x, gf28_t ip) {
+    return gf28_powp(x, 128, ip);
+}
+
 gf28_t gf28_divp(gf28_t a, gf28_t b, gf28_t ip) {
     return gf28_mulp(a, gf28_invp(b, ip), ip);
 }
@@ -64,6 +72,11 @@ gf28_t gf28_pow(gf28_t a, gf28_t b) {
 
 gf28_t gf28_inv(gf28_t x) {
     return x ? gf28i_exp_tbl[255 - gf28i_log_tbl[x]] : 0;
+}
+
+gf28_t gf28_sqrt(gf28_t x) {
+    unsigned y = gf28i_log_tbl[x] * 128;
+    return x ? gf28i_exp_tbl[(y | y >> 8) & 255] : 0;
 }
 
 gf28_t gf28_div(gf28_t a, gf28_t b) {
