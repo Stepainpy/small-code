@@ -177,15 +177,15 @@ static bool jiparsestring(jreader_t rdr, const char** strptr, bool inentry) {
         if (ch < ' ') goto error;
         if (ch == '\\')
             switch (rdr.next(rdr.ctx)) {
-                case '"' : if (!jipushchar( '"', &sb)) { goto error; } break;
+                case '\"': if (!jipushchar('\"', &sb)) { goto error; } break;
                 case '\\': if (!jipushchar('\\', &sb)) { goto error; } break;
-                case '/' : if (!jipushchar( '/', &sb)) { goto error; } break;
-                case 'b' : if (!jipushchar('\b', &sb)) { goto error; } break;
-                case 'f' : if (!jipushchar('\f', &sb)) { goto error; } break;
-                case 'n' : if (!jipushchar('\n', &sb)) { goto error; } break;
-                case 'r' : if (!jipushchar('\r', &sb)) { goto error; } break;
-                case 't' : if (!jipushchar('\t', &sb)) { goto error; } break;
-                case 'u': {
+                case  '/': if (!jipushchar( '/', &sb)) { goto error; } break;
+                case  'b': if (!jipushchar('\b', &sb)) { goto error; } break;
+                case  'f': if (!jipushchar('\f', &sb)) { goto error; } break;
+                case  'n': if (!jipushchar('\n', &sb)) { goto error; } break;
+                case  'r': if (!jipushchar('\r', &sb)) { goto error; } break;
+                case  't': if (!jipushchar('\t', &sb)) { goto error; } break;
+                case  'u': {
                     unsigned hex = 0; int digit;
                     for (size_t i = 0; i < 4; i++)
                         if (jiishex(digit = rdr.next(rdr.ctx)))
