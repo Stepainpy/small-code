@@ -8,6 +8,9 @@
 #define JC_TAB_SIZE 4
 #endif
 
+#define JC_FMT_NUM "%lg"
+#define JC_FMT_INT "%lli"
+
 typedef enum jtype {
     JT_NULL = 0,
     JT_BOOLEAN,
@@ -17,6 +20,9 @@ typedef enum jtype {
     JT_ARRAY,
     JT_OBJECT
 } jtype_t;
+
+typedef double jnumber_t;
+typedef long long jinteger_t;
 
 typedef struct jvalue jvalue_t;
 
@@ -39,8 +45,8 @@ struct jvalue {
     jtype_t type;
     union {
         bool        boolean;
-        double      number;
-        long long   integer;
+        jnumber_t   number;
+        jinteger_t  integer;
         const char* string;
         jarray_t    array;
         jobject_t   object;
@@ -477,8 +483,8 @@ void (jprint)(jvalue_t* value, unsigned level) {
     switch (value->type) {
         case JT_NULL: fputs("null", stdout); break;
         case JT_BOOLEAN: fputs(value->as.boolean ? "true" : "false", stdout); break;
-        case JT_INTEGER: printf("%lli", value->as.integer); break;
-        case JT_NUMBER: printf("%lg", value->as.number); break;
+        case JT_INTEGER: printf(JC_FMT_INT, value->as.integer); break;
+        case JT_NUMBER: printf(JC_FMT_NUM, value->as.number); break;
         case JT_STRING: printf("\"%s\"", value->as.string); break;
         case JT_ARRAY: {
             putchar('[');
