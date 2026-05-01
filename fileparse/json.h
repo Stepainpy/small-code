@@ -327,6 +327,12 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
             qsort(value->as.object.entries, value->as.object.count,
                 sizeof *value->as.object.entries, jientrycmp);
 
+            for (size_t i = 1; i < value->as.object.count; i++)
+                if (jientrycmp(
+                    value->as.object.entries + i - 1,
+                    value->as.object.entries + i
+                ) == 0) goto error;
+
             break;
         error_obj:
             free((void*)entry.key);
