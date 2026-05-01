@@ -4,13 +4,9 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define JC_TAB_SIZE     4
-#define JC_INIT_STR_CAP 32
-#define JC_INIT_ARR_CAP 16
-#define JC_INIT_OBJ_CAP 16
-#define JC_NUM_BUF_SIZE 256
-
-typedef struct jvalue jvalue_t;
+#ifndef JC_TAB_SIZE
+#define JC_TAB_SIZE 4
+#endif
 
 typedef enum jtype {
     JT_NULL = 0,
@@ -21,6 +17,8 @@ typedef enum jtype {
     JT_ARRAY,
     JT_OBJECT
 } jtype_t;
+
+typedef struct jvalue jvalue_t;
 
 typedef struct jarray {
     jvalue_t** values;
@@ -80,6 +78,11 @@ void jfree(jvalue_t* value);
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define JC_INIT_STR_CAP 32
+#define JC_INIT_ARR_CAP 16
+#define JC_INIT_OBJ_CAP 16
+#define JC_NUM_BUF_SIZE 256
 
 static bool jiisspace(int ch) {
     return ch ==  ' ' || ch == '\n'
