@@ -481,33 +481,36 @@ error:
 void (jprint)(jvalue_t* value, unsigned level) {
     if (!value) return;
     switch (value->type) {
-        case JT_NULL: fputs("null", stdout); break;
         case JT_BOOLEAN: fputs(value->as.boolean ? "true" : "false", stdout); break;
         case JT_INTEGER: printf(JC_FMT_INT, value->as.integer); break;
-        case JT_NUMBER: printf(JC_FMT_NUM, value->as.number); break;
-        case JT_STRING: printf("\"%s\"", value->as.string); break;
+        case JT_NUMBER:  printf(JC_FMT_NUM, value->as.number ); break;
+        case JT_STRING:  printf( "\"%s\"" , value->as.string ); break;
+        case JT_NULL:    fputs("null", stdout); break;
+
         case JT_ARRAY: {
             putchar('[');
             if (value->as.array.count == 0) { putchar(']'); break; }
-            putchar('\n');
+            if (JC_TAB_SIZE) putchar('\n');
             for (size_t i = 0; i < value->as.array.count; i++) {
                 printf("%*s", (level + 1) * JC_TAB_SIZE, "");
                 (jprint)(value->as.array.values[i], level + 1);
                 if (i < value->as.array.count - 1) putchar(',');
-                putchar('\n');
+                if (JC_TAB_SIZE) putchar('\n');
             }
             printf("%*s]", level * JC_TAB_SIZE, "");
         } break;
+
         case JT_OBJECT: {
             putchar('{');
             if (value->as.object.count == 0) { putchar('}'); break; }
-            putchar('\n');
+            if (JC_TAB_SIZE) putchar('\n');
             for (size_t i = 0; i < value->as.object.count; i++) {
                 jentry_t entry = value->as.object.entries[i];
-                printf("%*s\"%s\": ", (level + 1) * JC_TAB_SIZE, "", entry.key);
+                printf("%*s\"%s\":", (level + 1) * JC_TAB_SIZE, "", entry.key);
+                if (JC_TAB_SIZE) putchar(' ');
                 (jprint)(entry.value, level + 1);
                 if (i < value->as.object.count - 1) putchar(',');
-                putchar('\n');
+                if (JC_TAB_SIZE) putchar('\n');
             }
             printf("%*s}", level * JC_TAB_SIZE, "");
         } break;
@@ -518,14 +521,18 @@ void jfree(jvalue_t* value) {
     if (!value) return;
     switch (value->type) {
         case JT_NULL: case JT_BOOLEAN:
-        case JT_INTEGER: case JT_NUMBER: break;
+        case JT_INTEGER: case JT_NUMBER:
+            // no release is required
+            break;
 
         case JT_STRING: free((void*)value->as.string); break;
+
         case JT_ARRAY: {
             for (size_t i = 0; i < value->as.array.count; i++)
                 jfree(value->as.array.values[i]);
             free(value->as.array.values);
         } break;
+
         case JT_OBJECT: {
             for (size_t i = 0; i < value->as.object.count; i++) {
                 free((void*)value->as.object.entries[i].key);
