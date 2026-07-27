@@ -22,6 +22,14 @@ double pa_urdistr_64_get_cc(pa_engine_64_t engine); /* [0, 1] */
 double pa_urdistr_64_get_co(pa_engine_64_t engine); /* [0, 1) */
 double pa_urdistr_64_get_oo(pa_engine_64_t engine); /* (0, 1) */
 
+/* Normal distribution */
+
+typedef struct { pa_engine_32_t engine; float  mean, stddev; } pa_ndistr_32_t;
+typedef struct { pa_engine_64_t engine; double mean, stddev; } pa_ndistr_64_t;
+
+float  pa_ndistr_32_get(pa_ndistr_32_t distr);
+double pa_ndistr_64_get(pa_ndistr_64_t distr);
+
 #endif /* PRNG_ADAPTOR_H */
 
 #ifdef PRNG_ADAPTOR_IMPLEMENTATION
@@ -82,5 +90,33 @@ float pa_urdistr_32_get_oo(pa_engine_32_t engine) { return ((float)engine.get(en
 double pa_urdistr_64_get_cc(pa_engine_64_t engine) { return (engine.get(engine.ptr) >> 11) * (1. / 9007199254740991.); }
 double pa_urdistr_64_get_co(pa_engine_64_t engine) { return (engine.get(engine.ptr) >> 11) * (1. / 9007199254740992.); }
 double pa_urdistr_64_get_oo(pa_engine_64_t engine) { return ((double)(engine.get(engine.ptr) >> 12) + 0.5) * (1. / 4503599627370496.); }
+
+#include <math.h>
+
+float pa_ndistr_32_get(pa_ndistr_32_t distr) {
+    float x, y, r, out;
+
+    do {
+        x = 2. * pa_urdistr_32_get_co(distr.engine) - 1.;
+        y = 2. * pa_urdistr_32_get_co(distr.engine) - 1.;
+        r = x * x + y * y;
+    } while (r > 1. || r == 0);
+
+    out = x * sqrtf(-2. * logf(r) / r);
+    return out * distr.stddev + distr.mean;
+}
+
+double pa_ndistr_64_get(pa_ndistr_64_t distr) {
+    double x, y, r, out;
+
+    do {
+        x = 2. * pa_urdistr_64_get_co(distr.engine) - 1.;
+        y = 2. * pa_urdistr_64_get_co(distr.engine) - 1.;
+        r = x * x + y * y;
+    } while (r > 1. || r == 0);
+
+    out = x * sqrt(-2. * log(r) / r);
+    return out * distr.stddev + distr.mean;
+}
 
 #endif /* PRNG_ADAPTOR_IMPLEMENTATION */
