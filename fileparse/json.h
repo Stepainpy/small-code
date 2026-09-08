@@ -63,14 +63,14 @@ json_value_t* json_parse(json_reader_t reader);
 json_value_t* json_parse_cstr(const char* string);
 json_value_t* json_parse_file(const char* filename);
 
-json_value_t* json_at(json_value_t* object, const char* key);
+json_value_t* json_at(const json_value_t* object, const char* key);
 
-json_value_t* json_path(json_value_t* value, size_t depth, ...);
+json_value_t* json_path(const json_value_t* value, size_t depth, ...);
 #define __jsoni_Arg_count(_1, _2, _3, _4, _5, _6, _7, _8, _9, _a, _b, _c, _d, _e, _f, n, ...) n
 #define __jsoni_arg_count(...) __jsoni_Arg_count(__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, _)
 #define json_path(value, ...) json_path((value), __jsoni_arg_count(__VA_ARGS__), __VA_ARGS__)
 
-void json_print(json_value_t* value, unsigned level);
+void json_print(const json_value_t* value, unsigned level);
 #define json_print(value) json_print((value), 0)
 
 void json_free(json_value_t* value);
@@ -460,16 +460,16 @@ json_value_t* json_parse_file(const char* filename) {
     return json;
 }
 
-json_value_t* json_at(json_value_t* obj, const char* key) {
+json_value_t* json_at(const json_value_t* obj, const char* key) {
     if (!key || !obj || obj->type != JSON_TYPE_OBJ) return NULL;
-    json_entry_t kentry = { .key = (char*)key };
+    json_entry_t kentry = { .key = key };
     json_entry_t* find = bsearch(&kentry,
         obj->as.object.entries, obj->as.object.count,
         sizeof *obj->as.object.entries, jsoni_entry_cmp);
     return find ? find->value : NULL;
 }
 
-json_value_t* (json_path)(json_value_t* value, size_t depth, ...) {
+json_value_t* (json_path)(const json_value_t* value, size_t depth, ...) {
     va_list args;
     va_start(args, depth);
 
@@ -492,7 +492,7 @@ error:
     return NULL;
 }
 
-void (json_print)(json_value_t* value, unsigned level) {
+void (json_print)(const json_value_t* value, unsigned level) {
     if (!value) return;
     switch (value->type) {
         case JSON_TYPE_BLN: fputs(value->as.boolean ? "true" : "false", stdout); break;
