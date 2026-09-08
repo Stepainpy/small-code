@@ -12,13 +12,13 @@
 #define JSON_FMT_INT "%lli"
 
 typedef enum json_type_t {
-    JT_NULL = 0,
-    JT_BOOLEAN,
-    JT_INTEGER,
-    JT_NUMBER,
-    JT_STRING,
-    JT_ARRAY,
-    JT_OBJECT
+    JSON_TYPE_NUL,
+    JSON_TYPE_BLN,
+    JSON_TYPE_INT,
+    JSON_TYPE_NUM,
+    JSON_TYPE_STR,
+    JSON_TYPE_ARR,
+    JSON_TYPE_OBJ,
 } json_type_t;
 
 typedef double    json_number_t;
@@ -254,28 +254,28 @@ static json_value_t* jsoni_parse_value(json_reader_t rdr) {
     jsoni_skipws(rdr);
     switch (rdr.peek(rdr.ctx)) {
         case 'n':
-            value->type = JT_NULL;
+            value->type = JSON_TYPE_NUL;
             if (!jsoni_parse_keyword(rdr, "null")) goto error;
             break;
 
         case 'f':
-            value->type = JT_BOOLEAN;
+            value->type = JSON_TYPE_BLN;
             if (!jsoni_parse_keyword(rdr, "false")) goto error;
             value->as.boolean = false;
             break;
         case 't':
-            value->type = JT_BOOLEAN;
+            value->type = JSON_TYPE_BLN;
             if (!jsoni_parse_keyword(rdr, "true")) goto error;
             value->as.boolean = true;
             break;
 
         case '"':
-            value->type = JT_STRING;
+            value->type = JSON_TYPE_STR;
             if (!jsoni_parse_string(rdr, &value->as.string, false)) goto error;
             break;
 
         case '[': {
-            value->type = JT_ARRAY;
+            value->type = JSON_TYPE_ARR;
             (void)rdr.next(rdr.ctx);
             jsoni_skipws(rdr);
             if (rdr.peek(rdr.ctx) == ']') {
@@ -298,7 +298,7 @@ static json_value_t* jsoni_parse_value(json_reader_t rdr) {
         } break;
 
         case '{': {
-            value->type = JT_OBJECT;
+            value->type = JSON_TYPE_OBJ;
             (void)rdr.next(rdr.ctx);
             jsoni_skipws(rdr);
             if (rdr.peek(rdr.ctx) == '}') {
@@ -347,7 +347,7 @@ static json_value_t* jsoni_parse_value(json_reader_t rdr) {
             size_t size = 0; int ch;
             memset(buffer, 0, sizeof buffer);
 
-            value->type = JT_INTEGER;
+            value->type = JSON_TYPE_INT;
             if (rdr.peek(rdr.ctx) == '-') {
                 if (size >= sizeof buffer - 1) goto error;
                 buffer[size++] = rdr.next(rdr.ctx);
@@ -367,7 +367,7 @@ static json_value_t* jsoni_parse_value(json_reader_t rdr) {
             } else goto error;
 
             if (rdr.peek(rdr.ctx) == '.') {
-                value->type = JT_NUMBER;
+                value->type = JSON_TYPE_NUM;
                 if (size >= sizeof buffer - 1) goto error;
                 buffer[size++] = rdr.next(rdr.ctx);
                 if (!jsoni_isdec(rdr.peek(rdr.ctx))) goto error;
@@ -379,7 +379,7 @@ static json_value_t* jsoni_parse_value(json_reader_t rdr) {
 
             ch = rdr.peek(rdr.ctx);
             if (ch == 'e' || ch == 'E') {
-                value->type = JT_NUMBER;
+                value->type = JSON_TYPE_NUM;
                 if (size >= sizeof buffer - 1) goto error;
                 buffer[size++] = rdr.next(rdr.ctx);
                 ch = rdr.peek(rdr.ctx);
@@ -395,7 +395,7 @@ static json_value_t* jsoni_parse_value(json_reader_t rdr) {
 
             if (!jsoni_isdelim(rdr.peek(rdr.ctx))) goto error;
             char* end; errno = 0;
-            if (value->type == JT_INTEGER)
+            if (value->type == JSON_TYPE_INT)
                 value->as.integer = strtoll(buffer, &end, 10);
             else
                 value->as.number = strtod(buffer, &end);
@@ -461,7 +461,7 @@ json_value_t* json_parse_file(const char* filename) {
 }
 
 json_value_t* json_at(json_value_t* obj, const char* key) {
-    if (!key || !obj || obj->type != JT_OBJECT) return NULL;
+    if (!key || !obj || obj->type != JSON_TYPE_OBJ) return NULL;
     json_entry_t kentry = { .key = (char*)key };
     json_entry_t* find = bsearch(&kentry,
         obj->as.object.entries, obj->as.object.count,
@@ -474,10 +474,10 @@ json_value_t* (json_path)(json_value_t* value, size_t depth, ...) {
     va_start(args, depth);
 
     while (value && depth --> 0) {
-        /*  */ if (value->type == JT_OBJECT) {
+        /*  */ if (value->type == JSON_TYPE_OBJ) {
             const char* key = va_arg(args, const char*);
             value = json_at(value, key);
-        } else if (value->type == JT_ARRAY) {
+        } else if (value->type == JSON_TYPE_ARR) {
             size_t index = va_arg(args, size_t);
             if (index >= value->as.array.count) goto error;
             value = value->as.array.values[index];
@@ -495,13 +495,13 @@ error:
 void (json_print)(json_value_t* value, unsigned level) {
     if (!value) return;
     switch (value->type) {
-        case JT_BOOLEAN: fputs(value->as.boolean ? "true" : "false", stdout); break;
-        case JT_INTEGER: printf(JSON_FMT_INT, value->as.integer); break;
-        case JT_NUMBER:  printf(JSON_FMT_NUM, value->as.number ); break;
-        case JT_STRING:  printf( "\"%s\"" , value->as.string ); break;
-        case JT_NULL:    fputs("null", stdout); break;
+        case JSON_TYPE_BLN: fputs(value->as.boolean ? "true" : "false", stdout); break;
+        case JSON_TYPE_INT: printf(JSON_FMT_INT, value->as.integer); break;
+        case JSON_TYPE_NUM: printf(JSON_FMT_NUM, value->as.number ); break;
+        case JSON_TYPE_STR: printf(  "\"%s\""  , value->as.string ); break;
+        case JSON_TYPE_NUL: fputs("null", stdout); break;
 
-        case JT_ARRAY: {
+        case JSON_TYPE_ARR: {
             putchar('[');
             if (value->as.array.count == 0) { putchar(']'); break; }
             if (JSON_TAB_SIZE) putchar('\n');
@@ -514,7 +514,7 @@ void (json_print)(json_value_t* value, unsigned level) {
             printf("%*s]", level * JSON_TAB_SIZE, "");
         } break;
 
-        case JT_OBJECT: {
+        case JSON_TYPE_OBJ: {
             putchar('{');
             if (value->as.object.count == 0) { putchar('}'); break; }
             if (JSON_TAB_SIZE) putchar('\n');
@@ -534,20 +534,20 @@ void (json_print)(json_value_t* value, unsigned level) {
 void json_free(json_value_t* value) {
     if (!value) return;
     switch (value->type) {
-        case JT_NULL: case JT_BOOLEAN:
-        case JT_INTEGER: case JT_NUMBER:
+        case JSON_TYPE_NUL: case JSON_TYPE_BLN:
+        case JSON_TYPE_INT: case JSON_TYPE_NUM:
             // no release is required
             break;
 
-        case JT_STRING: free((void*)value->as.string); break;
+        case JSON_TYPE_STR: free((void*)value->as.string); break;
 
-        case JT_ARRAY:
+        case JSON_TYPE_ARR:
             for (size_t i = 0; i < value->as.array.count; i++)
                 json_free(value->as.array.values[i]);
             free(value->as.array.values);
             break;
 
-        case JT_OBJECT:
+        case JSON_TYPE_OBJ:
             for (size_t i = 0; i < value->as.object.count; i++) {
                 free((void*)value->as.object.entries[i].key);
                 json_free(value->as.object.entries[i].value);
