@@ -4,14 +4,14 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#ifndef JC_TAB_SIZE
-#define JC_TAB_SIZE 4
+#ifndef JSON_TAB_SIZE
+#define JSON_TAB_SIZE 4
 #endif
 
-#define JC_FMT_NUM "%lg"
-#define JC_FMT_INT "%lli"
+#define JSON_FMT_NUM "%lg"
+#define JSON_FMT_INT "%lli"
 
-typedef enum jtype {
+typedef enum json_type_t {
     JT_NULL = 0,
     JT_BOOLEAN,
     JT_INTEGER,
@@ -19,61 +19,61 @@ typedef enum jtype {
     JT_STRING,
     JT_ARRAY,
     JT_OBJECT
-} jtype_t;
+} json_type_t;
 
-typedef double jnumber_t;
-typedef long long jinteger_t;
+typedef double    json_number_t;
+typedef long long json_integer_t;
 
-typedef struct jvalue jvalue_t;
+typedef struct json_value_t json_value_t;
 
-typedef struct jarray {
-    jvalue_t** values;
+typedef struct json_array_t {
+    json_value_t** values;
     size_t count;
-} jarray_t;
+} json_array_t;
 
-typedef struct jentry {
+typedef struct json_entry_t {
     const char* key;
-    jvalue_t* value;
-} jentry_t;
+    json_value_t* value;
+} json_entry_t;
 
-typedef struct jobject {
-    jentry_t* entries;
+typedef struct json_object_t {
+    json_entry_t* entries;
     size_t count;
-} jobject_t;
+} json_object_t;
 
-struct jvalue {
-    jtype_t type;
+struct json_value_t {
+    json_type_t type;
     union {
-        bool        boolean;
-        jnumber_t   number;
-        jinteger_t  integer;
-        const char* string;
-        jarray_t    array;
-        jobject_t   object;
+        bool           boolean;
+        json_number_t  number;
+        json_integer_t integer;
+        const char*    string;
+        json_array_t   array;
+        json_object_t  object;
     } as;
 };
 
-typedef struct jreader {
-    int (*next)(void*); // character on success, negative value on failure
-    int (*peek)(void*); // character on success, negative value on failure
+typedef struct json_reader_t {
+    int (*next)(void* ctx); // character on success, negative value on failure
+    int (*peek)(void* ctx); // character on success, negative value on failure
     void* ctx;
-} jreader_t;
+} json_reader_t;
 
-jvalue_t* jparse(jreader_t reader);
-jvalue_t* jparse_cstr(const char* string);
-jvalue_t* jparse_file(const char* filename);
+json_value_t* json_parse(json_reader_t reader);
+json_value_t* json_parse_cstr(const char* string);
+json_value_t* json_parse_file(const char* filename);
 
-jvalue_t* jat(jvalue_t* object, const char* key);
+json_value_t* json_at(json_value_t* object, const char* key);
 
-jvalue_t* jpath(jvalue_t* value, size_t depth, ...);
-#define ji__Arg_count(_1, _2, _3, _4, _5, _6, _7, _8, _9, _a, _b, _c, _d, _e, _f, n, ...) n
-#define ji__arg_count(...) ji__Arg_count(__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, _)
-#define jpath(value, ...) jpath((value), ji__arg_count(__VA_ARGS__), __VA_ARGS__)
+json_value_t* json_path(json_value_t* value, size_t depth, ...);
+#define __jsoni_Arg_count(_1, _2, _3, _4, _5, _6, _7, _8, _9, _a, _b, _c, _d, _e, _f, n, ...) n
+#define __jsoni_arg_count(...) __jsoni_Arg_count(__VA_ARGS__, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, _)
+#define json_path(value, ...) json_path((value), __jsoni_arg_count(__VA_ARGS__), __VA_ARGS__)
 
-void jprint(jvalue_t* value, unsigned level);
-#define jprint(value) jprint((value), 0)
+void json_print(json_value_t* value, unsigned level);
+#define json_print(value) json_print((value), 0)
 
-void jfree(jvalue_t* value);
+void json_free(json_value_t* value);
 
 #endif /* JAVASCRIPT_OBJECT_NOTATION_H */
 
@@ -85,73 +85,73 @@ void jfree(jvalue_t* value);
 #include <stdlib.h>
 #include <string.h>
 
-#define JC_INIT_STR_CAP 32
-#define JC_INIT_ARR_CAP 16
-#define JC_INIT_OBJ_CAP 16
-#define JC_NUM_BUF_SIZE 256
+#define JSON_INIT_STR_CAP 32
+#define JSON_INIT_ARR_CAP 16
+#define JSON_INIT_OBJ_CAP 16
+#define JSON_NUM_BUF_SIZE 256
 
-static bool jiisspace(int ch) {
+static bool jsoni_isspace(int ch) {
     return ch ==  ' ' || ch == '\n'
         || ch == '\t' || ch == '\r';
 }
 
-static bool jiisdelim(int ch) {
-    return ch  <  0  || jiisspace(ch)
+static bool jsoni_isdelim(int ch) {
+    return ch  <  0  || jsoni_isspace(ch)
         || ch == ',' || ch == ']' || ch == '}';
 }
 
-static bool jiisdec(int ch) {
+static bool jsoni_isdec(int ch) {
     return '0' <= ch && ch <= '9';
 }
 
-static bool jiishex(int ch) {
+static bool jsoni_ishex(int ch) {
     return ('0' <= ch && ch <= '9')
         || ('a' <= ch && ch <= 'f')
         || ('A' <= ch && ch <= 'F');
 }
 
-static unsigned jifromhex(int digit) {
+static unsigned jsoni_fromhex(int digit) {
     if ('0' <= digit && digit <= '9') return digit - '0';
     if ('a' <= digit && digit <= 'f') return digit - 'a' + 10;
     if ('A' <= digit && digit <= 'F') return digit - 'A' + 10;
-    return -1;
+    return 0;
 }
 
-static void jiskipws(jreader_t rdr) {
+static void jsoni_skipws(json_reader_t rdr) {
     while (true) {
         int ch = rdr.peek(rdr.ctx);
-        if (!jiisspace(ch)) break;
+        if (!jsoni_isspace(ch)) break;
         (void)rdr.next(rdr.ctx);
     }
 }
 
-typedef struct { char* ptr; size_t len, cap; } jisb_t;
+typedef struct { char* ptr; size_t len, cap; } jsoni_sb_t;
 
-static bool jisbrequire(jisb_t* sb, size_t require) {
+static bool jsoni_sb_require(jsoni_sb_t* sb, size_t require) {
     if (sb->len + require > sb->cap) {
-        sb->cap += sb->cap ? sb->cap / 2 : JC_INIT_STR_CAP;
-        void* new = realloc(sb->ptr, sb->cap);
-        if (!new) return false;
-        sb->ptr = new;
+        sb->cap += sb->cap ? sb->cap / 2 : JSON_INIT_STR_CAP;
+        void* newptr = realloc(sb->ptr, sb->cap);
+        if (!newptr) return false;
+        sb->ptr = newptr;
     }
     return true;
 }
 
-static bool jipushchar(int ch, jisb_t* sb) {
-    if (!jisbrequire(sb, 1)) return false;
+static bool jsoni_push_char(int ch, jsoni_sb_t* sb) {
+    if (!jsoni_sb_require(sb, 1)) return false;
     sb->ptr[sb->len++] = (unsigned char)ch;
     return true;
 }
 
-static bool jipushutf8(unsigned cp, jisb_t* sb) {
-    int count_bytes = 0;
-    /**/ if (cp < 0x080) count_bytes = 1;
-    else if (cp < 0x800) count_bytes = 2;
-    else                 count_bytes = 3;
+static bool jsoni_push_utf8(unsigned cp, jsoni_sb_t* sb) {
+    int bytes;
+    /**/ if (cp < 0x080) bytes = 1;
+    else if (cp < 0x800) bytes = 2;
+    else                 bytes = 3;
 
-    if (!jisbrequire(sb, count_bytes)) return false;
+    if (!jsoni_sb_require(sb, bytes)) return false;
 
-    switch (count_bytes) {
+    switch (bytes) {
         case 1:
             sb->ptr[sb->len++] = cp;
             break;
@@ -169,40 +169,40 @@ static bool jipushutf8(unsigned cp, jisb_t* sb) {
     return true;
 }
 
-static bool jiparsestring(jreader_t rdr, const char** strptr, bool inentry) {
-    int ch; jisb_t sb = {0};
+static bool jsoni_parse_string(json_reader_t rdr, const char** strptr, bool inentry) {
+    int ch; jsoni_sb_t sb = {0};
     if (rdr.next(rdr.ctx) != '"') goto error;
     ch = rdr.next(rdr.ctx);
     while (ch != '"') {
         if (ch < ' ') goto error;
         if (ch == '\\')
             switch (rdr.next(rdr.ctx)) {
-                case '\"': if (!jipushchar('\"', &sb)) { goto error; } break;
-                case '\\': if (!jipushchar('\\', &sb)) { goto error; } break;
-                case  '/': if (!jipushchar( '/', &sb)) { goto error; } break;
-                case  'b': if (!jipushchar('\b', &sb)) { goto error; } break;
-                case  'f': if (!jipushchar('\f', &sb)) { goto error; } break;
-                case  'n': if (!jipushchar('\n', &sb)) { goto error; } break;
-                case  'r': if (!jipushchar('\r', &sb)) { goto error; } break;
-                case  't': if (!jipushchar('\t', &sb)) { goto error; } break;
+                case '\"': if (!jsoni_push_char('\"', &sb)) { goto error; } break;
+                case '\\': if (!jsoni_push_char('\\', &sb)) { goto error; } break;
+                case  '/': if (!jsoni_push_char( '/', &sb)) { goto error; } break;
+                case  'b': if (!jsoni_push_char('\b', &sb)) { goto error; } break;
+                case  'f': if (!jsoni_push_char('\f', &sb)) { goto error; } break;
+                case  'n': if (!jsoni_push_char('\n', &sb)) { goto error; } break;
+                case  'r': if (!jsoni_push_char('\r', &sb)) { goto error; } break;
+                case  't': if (!jsoni_push_char('\t', &sb)) { goto error; } break;
                 case  'u': {
                     unsigned hex = 0; int digit;
                     for (size_t i = 0; i < 4; i++)
-                        if (jiishex(digit = rdr.next(rdr.ctx)))
-                            hex = hex << 4 | jifromhex(digit);
+                        if (jsoni_ishex(digit = rdr.next(rdr.ctx)))
+                            hex = hex << 4 | jsoni_fromhex(digit);
                         else goto error;
-                    if (!jipushutf8(hex, &sb)) goto error;
+                    if (!jsoni_push_utf8(hex, &sb)) goto error;
                 } break;
                 default: goto error;
             }
         else
-            if (!jipushchar(ch, &sb)) goto error;
+            if (!jsoni_push_char(ch, &sb)) goto error;
         ch = rdr.next(rdr.ctx);
     }
 
     ch = rdr.peek(rdr.ctx);
-    if (!jiisdelim(ch) && (!inentry || ch != ':')) goto error;
-    if (!jipushchar('\0', &sb)) goto error;
+    if (!jsoni_isdelim(ch) && (!inentry || ch != ':')) goto error;
+    if (!jsoni_push_char('\0', &sb)) goto error;
 
     void* cropped = realloc(sb.ptr, sb.len);
     if (!cropped) goto error;
@@ -214,78 +214,79 @@ error:
     return false;
 }
 
-static bool jiparsekeyword(jreader_t rdr, const char* kw) {
+static bool jsoni_parse_keyword(json_reader_t rdr, const char* kw) {
     while (*kw) if (rdr.next(rdr.ctx) != *kw++) return false;
-    return jiisdelim(rdr.peek(rdr.ctx));
+    return jsoni_isdelim(rdr.peek(rdr.ctx));
 }
 
-static bool jipushvalue(jvalue_t* value, jarray_t* arr, size_t* cap) {
+static bool jsoni_push_value(json_value_t* value, json_array_t* arr, size_t* cap) {
     if (arr->count >= *cap) {
-        *cap += *cap ? *cap / 2 : JC_INIT_ARR_CAP;
-        void* new = realloc(arr->values, *cap * sizeof *arr->values);
-        if (!new) return false;
-        arr->values = new;
+        *cap += *cap ? *cap / 2 : JSON_INIT_ARR_CAP;
+        void* newptr = realloc(arr->values, *cap * sizeof *arr->values);
+        if (!newptr) return false;
+        arr->values = newptr;
     }
-
     arr->values[arr->count++] = value;
     return true;
 }
 
-static bool jipushentry(jentry_t entry, jobject_t* obj, size_t* cap) {
+static bool jsoni_push_entry(json_entry_t entry, json_object_t* obj, size_t* cap) {
     if (obj->count >= *cap) {
-        *cap += *cap ? *cap / 2 : JC_INIT_OBJ_CAP;
-        void* new = realloc(obj->entries, *cap * sizeof *obj->entries);
-        if (!new) return false;
-        obj->entries = new;
+        *cap += *cap ? *cap / 2 : JSON_INIT_OBJ_CAP;
+        void* newptr = realloc(obj->entries, *cap * sizeof *obj->entries);
+        if (!newptr) return false;
+        obj->entries = newptr;
     }
-
     obj->entries[obj->count++] = entry;
     return true;
 }
 
-static int jientrycmp(const void* lhs, const void* rhs) {
-    const jentry_t *l = lhs, *r = rhs;
+static int jsoni_entry_cmp(const void* lhs, const void* rhs) {
+    const json_entry_t *l = lhs, *r = rhs;
     return strcmp(l->key, r->key);
 }
 
-static jvalue_t* jiparsevalue(jreader_t rdr) {
-    jvalue_t* value = malloc(sizeof *value);
+static json_value_t* jsoni_parse_value(json_reader_t rdr) {
+    json_value_t* value = malloc(sizeof *value);
     if (!value) return NULL;
     memset(value, 0, sizeof *value);
 
-    jiskipws(rdr);
+    jsoni_skipws(rdr);
     switch (rdr.peek(rdr.ctx)) {
-        case 'n': {
+        case 'n':
             value->type = JT_NULL;
-            if (!jiparsekeyword(rdr, "null")) goto error;
-        } break;
-        case 'f': {
+            if (!jsoni_parse_keyword(rdr, "null")) goto error;
+            break;
+
+        case 'f':
             value->type = JT_BOOLEAN;
-            if (!jiparsekeyword(rdr, "false")) goto error;
+            if (!jsoni_parse_keyword(rdr, "false")) goto error;
             value->as.boolean = false;
-        } break;
-        case 't': {
+            break;
+        case 't':
             value->type = JT_BOOLEAN;
-            if (!jiparsekeyword(rdr, "true")) goto error;
+            if (!jsoni_parse_keyword(rdr, "true")) goto error;
             value->as.boolean = true;
-        } break;
-        case '"': {
+            break;
+
+        case '"':
             value->type = JT_STRING;
-            if (!jiparsestring(rdr, &value->as.string, false)) goto error;
-        } break;
+            if (!jsoni_parse_string(rdr, &value->as.string, false)) goto error;
+            break;
+
         case '[': {
             value->type = JT_ARRAY;
             (void)rdr.next(rdr.ctx);
-            jiskipws(rdr);
+            jsoni_skipws(rdr);
             if (rdr.peek(rdr.ctx) == ']') {
                 (void)rdr.next(rdr.ctx); break;
             }
 
             size_t cap = 0; int ch;
             do {
-                jvalue_t* element = jiparsevalue(rdr);
+                json_value_t* element = jsoni_parse_value(rdr);
                 if (!element) goto error;
-                if(!jipushvalue(element, &value->as.array, &cap)) goto error;
+                if(!jsoni_push_value(element, &value->as.array, &cap)) goto error;
                 ch = rdr.next(rdr.ctx);
                 if (ch != ',' && ch != ']') goto error;
             } while (ch == ',');
@@ -295,26 +296,27 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
             if (!cropped) goto error;
             value->as.array.values = cropped;
         } break;
+
         case '{': {
             value->type = JT_OBJECT;
             (void)rdr.next(rdr.ctx);
-            jiskipws(rdr);
+            jsoni_skipws(rdr);
             if (rdr.peek(rdr.ctx) == '}') {
                 (void)rdr.next(rdr.ctx); break;
             }
 
-            jentry_t entry;
+            json_entry_t entry;
             size_t cap = 0; int ch;
             do {
                 memset(&entry, 0, sizeof entry);
 
-                jiskipws(rdr);
-                if (!jiparsestring(rdr, &entry.key, true)) goto error_obj;
-                jiskipws(rdr);
+                jsoni_skipws(rdr);
+                if (!jsoni_parse_string(rdr, &entry.key, true)) goto error_obj;
+                jsoni_skipws(rdr);
                 if (rdr.next(rdr.ctx) != ':') goto error_obj;
-                entry.value = jiparsevalue(rdr);
+                entry.value = jsoni_parse_value(rdr);
                 if (!entry.value) goto error_obj;
-                if (!jipushentry(entry, &value->as.object, &cap)) goto error_obj;
+                if (!jsoni_push_entry(entry, &value->as.object, &cap)) goto error_obj;
 
                 ch = rdr.next(rdr.ctx);
                 if (ch != ',' && ch != '}') goto error;
@@ -325,10 +327,10 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
             if (!cropped) goto error;
             value->as.object.entries = cropped;
             qsort(value->as.object.entries, value->as.object.count,
-                sizeof *value->as.object.entries, jientrycmp);
+                sizeof *value->as.object.entries, jsoni_entry_cmp);
 
             for (size_t i = 1; i < value->as.object.count; i++)
-                if (jientrycmp(
+                if (jsoni_entry_cmp(
                     value->as.object.entries + i - 1,
                     value->as.object.entries + i
                 ) == 0) goto error;
@@ -336,11 +338,12 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
             break;
         error_obj:
             free((void*)entry.key);
-            jfree(entry.value);
+            json_free(entry.value);
             goto error;
         } break;
+
         default: {
-            static char buffer[JC_NUM_BUF_SIZE];
+            static char buffer[JSON_NUM_BUF_SIZE];
             size_t size = 0; int ch;
             memset(buffer, 0, sizeof buffer);
 
@@ -354,10 +357,10 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
             /*  */ if (ch == '0') {
                 if (size >= sizeof buffer - 1) goto error;
                 buffer[size++] = '0';
-            } else if (jiisdec(ch)) {
+            } else if (jsoni_isdec(ch)) {
                 if (size >= sizeof buffer - 1) goto error;
                 buffer[size++] = ch;
-                while (jiisdec(rdr.peek(rdr.ctx))) {
+                while (jsoni_isdec(rdr.peek(rdr.ctx))) {
                     if (size >= sizeof buffer - 1) goto error;
                     buffer[size++] = rdr.next(rdr.ctx);
                 }
@@ -367,8 +370,8 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
                 value->type = JT_NUMBER;
                 if (size >= sizeof buffer - 1) goto error;
                 buffer[size++] = rdr.next(rdr.ctx);
-                if (!jiisdec(rdr.peek(rdr.ctx))) goto error;
-                while (jiisdec(rdr.peek(rdr.ctx))) {
+                if (!jsoni_isdec(rdr.peek(rdr.ctx))) goto error;
+                while (jsoni_isdec(rdr.peek(rdr.ctx))) {
                     if (size >= sizeof buffer - 1) goto error;
                     buffer[size++] = rdr.next(rdr.ctx);
                 }
@@ -384,13 +387,13 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
                     if (size >= sizeof buffer - 1) goto error;
                     buffer[size++] = rdr.next(rdr.ctx);
                 }
-                while (jiisdec(rdr.peek(rdr.ctx))) {
+                while (jsoni_isdec(rdr.peek(rdr.ctx))) {
                     if (size >= sizeof buffer - 1) goto error;
                     buffer[size++] = rdr.next(rdr.ctx);
                 }
             }
 
-            if (!jiisdelim(rdr.peek(rdr.ctx))) goto error;
+            if (!jsoni_isdelim(rdr.peek(rdr.ctx))) goto error;
             char* end; errno = 0;
             if (value->type == JT_INTEGER)
                 value->as.integer = strtoll(buffer, &end, 10);
@@ -399,76 +402,81 @@ static jvalue_t* jiparsevalue(jreader_t rdr) {
             if (errno == ERANGE || buffer + size != end) goto error;
         } break;
     }
-    jiskipws(rdr);
+    jsoni_skipws(rdr);
 
     return value;
 error:
-    jfree(value);
+    json_free(value);
     return NULL;
 }
 
-jvalue_t* jparse(jreader_t rdr) {
-    jvalue_t* json = jiparsevalue(rdr);
+json_value_t* json_parse(json_reader_t rdr) {
+    json_value_t* json = jsoni_parse_value(rdr);
     if (!json) return json;
     if (rdr.next(rdr.ctx) < 0)
         return json;
-    jfree(json);
+    json_free(json);
     return NULL;
 }
 
-static int jirdrstrnext(void* ptr) {
+static int jsoni_rdr_cstr_next(void* ptr) {
     union { void* v; const char** s; } conv = {.v = ptr};
     return **conv.s ? *(*conv.s)++ : -1;
 }
 
-static int jirdrstrpeek(void* ptr) {
+static int jsoni_rdr_cstr_peek(void* ptr) {
     union { void* v; const char** s; } conv = {.v = ptr};
     return **conv.s ? **conv.s : -1;
 }
 
-jvalue_t* jparse_cstr(const char* str) {
+json_value_t* json_parse_cstr(const char* str) {
     if (!str) return NULL;
-    return jparse((jreader_t){
-        jirdrstrnext, jirdrstrpeek, &str
+    return json_parse((json_reader_t){
+        jsoni_rdr_cstr_next,
+        jsoni_rdr_cstr_peek,
+        &str
     });
 }
 
-static int jirdrfilenext(void* ptr) {
+static int jsoni_rdr_file_next(void* ptr) {
     union { void* v; FILE* f; } conv = {.v = ptr};
     return fgetc(conv.f);
 }
 
-static int jirdrfilepeek(void* ptr) {
+static int jsoni_rdr_file_peek(void* ptr) {
     union { void* v; FILE* f; } conv = {.v = ptr};
     return ungetc(fgetc(conv.f), conv.f);
 }
 
-jvalue_t* jparse_file(const char* filename) {
+json_value_t* json_parse_file(const char* filename) {
     FILE* fd = fopen(filename, "r");
     if (!fd) return NULL;
-    jvalue_t* json = jparse((jreader_t){
-        jirdrfilenext, jirdrfilepeek, fd
-    }); fclose(fd);
+    json_value_t* json = json_parse((json_reader_t){
+        jsoni_rdr_file_next,
+        jsoni_rdr_file_peek,
+        fd
+    });
+    fclose(fd);
     return json;
 }
 
-jvalue_t* jat(jvalue_t* obj, const char* key) {
+json_value_t* json_at(json_value_t* obj, const char* key) {
     if (!key || !obj || obj->type != JT_OBJECT) return NULL;
-    jentry_t kentry = {0}; kentry.key = (char*)key;
-    jentry_t* find = bsearch(&kentry,
+    json_entry_t kentry = { .key = (char*)key };
+    json_entry_t* find = bsearch(&kentry,
         obj->as.object.entries, obj->as.object.count,
-        sizeof *obj->as.object.entries, jientrycmp);
+        sizeof *obj->as.object.entries, jsoni_entry_cmp);
     return find ? find->value : NULL;
 }
 
-jvalue_t* (jpath)(jvalue_t* value, size_t depth, ...) {
+json_value_t* (json_path)(json_value_t* value, size_t depth, ...) {
     va_list args;
     va_start(args, depth);
 
     while (value && depth --> 0) {
         /*  */ if (value->type == JT_OBJECT) {
             const char* key = va_arg(args, const char*);
-            value = jat(value, key);
+            value = json_at(value, key);
         } else if (value->type == JT_ARRAY) {
             size_t index = va_arg(args, size_t);
             if (index >= value->as.array.count) goto error;
@@ -484,46 +492,46 @@ error:
     return NULL;
 }
 
-void (jprint)(jvalue_t* value, unsigned level) {
+void (json_print)(json_value_t* value, unsigned level) {
     if (!value) return;
     switch (value->type) {
         case JT_BOOLEAN: fputs(value->as.boolean ? "true" : "false", stdout); break;
-        case JT_INTEGER: printf(JC_FMT_INT, value->as.integer); break;
-        case JT_NUMBER:  printf(JC_FMT_NUM, value->as.number ); break;
+        case JT_INTEGER: printf(JSON_FMT_INT, value->as.integer); break;
+        case JT_NUMBER:  printf(JSON_FMT_NUM, value->as.number ); break;
         case JT_STRING:  printf( "\"%s\"" , value->as.string ); break;
         case JT_NULL:    fputs("null", stdout); break;
 
         case JT_ARRAY: {
             putchar('[');
             if (value->as.array.count == 0) { putchar(']'); break; }
-            if (JC_TAB_SIZE) putchar('\n');
+            if (JSON_TAB_SIZE) putchar('\n');
             for (size_t i = 0; i < value->as.array.count; i++) {
-                printf("%*s", (level + 1) * JC_TAB_SIZE, "");
-                (jprint)(value->as.array.values[i], level + 1);
+                printf("%*s", (level + 1) * JSON_TAB_SIZE, "");
+                (json_print)(value->as.array.values[i], level + 1);
                 if (i < value->as.array.count - 1) putchar(',');
-                if (JC_TAB_SIZE) putchar('\n');
+                if (JSON_TAB_SIZE) putchar('\n');
             }
-            printf("%*s]", level * JC_TAB_SIZE, "");
+            printf("%*s]", level * JSON_TAB_SIZE, "");
         } break;
 
         case JT_OBJECT: {
             putchar('{');
             if (value->as.object.count == 0) { putchar('}'); break; }
-            if (JC_TAB_SIZE) putchar('\n');
+            if (JSON_TAB_SIZE) putchar('\n');
             for (size_t i = 0; i < value->as.object.count; i++) {
-                jentry_t entry = value->as.object.entries[i];
-                printf("%*s\"%s\":", (level + 1) * JC_TAB_SIZE, "", entry.key);
-                if (JC_TAB_SIZE) putchar(' ');
-                (jprint)(entry.value, level + 1);
+                json_entry_t entry = value->as.object.entries[i];
+                printf("%*s\"%s\":", (level + 1) * JSON_TAB_SIZE, "", entry.key);
+                if (JSON_TAB_SIZE) putchar(' ');
+                (json_print)(entry.value, level + 1);
                 if (i < value->as.object.count - 1) putchar(',');
-                if (JC_TAB_SIZE) putchar('\n');
+                if (JSON_TAB_SIZE) putchar('\n');
             }
-            printf("%*s}", level * JC_TAB_SIZE, "");
+            printf("%*s}", level * JSON_TAB_SIZE, "");
         } break;
     }
 }
 
-void jfree(jvalue_t* value) {
+void json_free(json_value_t* value) {
     if (!value) return;
     switch (value->type) {
         case JT_NULL: case JT_BOOLEAN:
@@ -533,19 +541,19 @@ void jfree(jvalue_t* value) {
 
         case JT_STRING: free((void*)value->as.string); break;
 
-        case JT_ARRAY: {
+        case JT_ARRAY:
             for (size_t i = 0; i < value->as.array.count; i++)
-                jfree(value->as.array.values[i]);
+                json_free(value->as.array.values[i]);
             free(value->as.array.values);
-        } break;
+            break;
 
-        case JT_OBJECT: {
+        case JT_OBJECT:
             for (size_t i = 0; i < value->as.object.count; i++) {
                 free((void*)value->as.object.entries[i].key);
-                jfree(value->as.object.entries[i].value);
+                json_free(value->as.object.entries[i].value);
             }
             free(value->as.object.entries);
-        } break;
+            break;
     }
     free(value);
 }
