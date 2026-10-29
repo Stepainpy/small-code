@@ -5,9 +5,9 @@
 
 /* Drawing histogram for y in [0; 1]
  * `height` - count of rows in one column
- * `coef` - scale, if equal 0 then assing max from `columns`
+ * `scale` - if equal 0 then assing 1/max from `columns`
  */
-void histogram(const double columns[], size_t count, size_t height, double coef);
+void histogram(const double columns[], size_t count, size_t height, double scale);
 
 #endif /* ASCII_HISTOGRAM_H */
 
@@ -15,7 +15,7 @@ void histogram(const double columns[], size_t count, size_t height, double coef)
 
 #include <stdio.h>
 
-void histogram(const double columns[], size_t count, size_t height, double coef) {
+void histogram(const double columns[], size_t count, size_t height, double scale) {
     static const char levels[9][7] = {
         "\x20\x20\x00\x00\x00\x00",
         "\xe2\x96\x81\xe2\x96\x81",
@@ -31,19 +31,19 @@ void histogram(const double columns[], size_t count, size_t height, double coef)
     const double gap = 1. / (double)height;
     size_t i, j;
 
-    if (coef == +0.0 || coef == -0.0) {
+    if (scale == +0.0 || scale == -0.0) {
         double max = -1. / 0.; /* -inf */
         for (i = 0; i < count; i++)
             max = columns[i] > max ? columns[i] : max;
-        coef = max;
+        scale = 1. / max;
     }
 
     puts("1^");
     for (i = height; i --> 0;) {
         fputs(" |", stdout);
         for (j = 0; j < count; j++) {
-            const double upper = columns[j] / coef - gap * (i + 1);
-            const double lower = columns[j] / coef - gap * (i + 0);
+            const double upper = scale * columns[j] - gap * (i + 1);
+            const double lower = scale * columns[j] - gap * (i + 0);
             /**/ if (upper > 0) fputs(levels[8], stdout);
             else if (lower < 0) fputs(levels[0], stdout);
             else {
