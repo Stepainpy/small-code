@@ -16,10 +16,13 @@ typedef struct {
     double saved; /* init as NAN */
 } distr_normal_t;
 
-/* U(0, 1) */ double distr_uniform_i0i1(distr_rand_t rand, void* state);
-/* N(0, 1) */ double distr_normal_m0s1(distr_rand_t rand, void* state, double* second);
+/* U[0, 1] */ double distr_uniform_i0i1(uint64_t random);
+/* U[0, 1) */ double distr_uniform_i0e1(uint64_t random);
+/* U(0, 1] */ double distr_uniform_e0i1(uint64_t random);
+/* U(0, 1) */ double distr_uniform_e0e1(uint64_t random);
+/* U[a, b] */ double distr_uniform(distr_uniform_t* param);
 
-/* U(a, b) */ double distr_uniform(distr_uniform_t* param);
+/* N(0, 1) */ double distr_normal_m0s1(distr_rand_t rand, void* state, double* second);
 /* N(m, s) */ double distr_normal(distr_normal_t* param);
 
 #endif /* RANDOM_DISTRIBUTION_H */
@@ -32,15 +35,27 @@ typedef struct {
 #define NAN (0./0.)
 #endif
 
-double distr_uniform_i0i1(distr_rand_t rand, void* state) {
-    return (double)(rand(state) >> 11) * (1. / 9007199254740991.);
+double distr_uniform_i0i1(uint64_t random) {
+    return (double)(random >> 11) * (1. / 9007199254740991.);
+}
+
+double distr_uniform_i0e1(uint64_t random) {
+    return (double)(random >> 11) * (1. / 9007199254740992.);
+}
+
+double distr_uniform_e0e1(uint64_t random) {
+    return ((double)(random >> 12) + 0.5) * (1. / 4503599627370496.);
+}
+
+double distr_uniform_e0i1(uint64_t random) {
+    return 1. - distr_uniform_i0e1(random);
 }
 
 double distr_normal_m0s1(distr_rand_t rand, void* state, double* second) {
     double x, y, s;
     do {
-        x = 2. * distr_uniform_i0i1(rand, state) - 1.;
-        y = 2. * distr_uniform_i0i1(rand, state) - 1.;
+        x = 2. * distr_uniform_i0i1(rand(state)) - 1.;
+        y = 2. * distr_uniform_i0i1(rand(state)) - 1.;
         s = x * x + y * y;
     } while (s > 1. || s == 0.);
     s = sqrt(-2. * log(s) / s);
@@ -50,7 +65,7 @@ double distr_normal_m0s1(distr_rand_t rand, void* state, double* second) {
 
 double distr_uniform(distr_uniform_t* param) {
     return param->a + (param->b - param->a) *
-        distr_uniform_i0i1(param->rand, param->state);
+        distr_uniform_i0i1(param->rand(param->state));
 }
 
 double distr_normal(distr_normal_t* param) {
