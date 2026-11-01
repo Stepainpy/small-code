@@ -16,6 +16,11 @@ typedef struct {
     double saved; /* init as NAN */
 } distr_normal_t;
 
+typedef struct {
+    distr_rand_t rand; void* state;
+    double* distr; size_t count;
+} distr_discrete_t;
+
 /* U[0, 1] */ double distr_uniform_i0i1(uint64_t random);
 /* U[0, 1) */ double distr_uniform_i0e1(uint64_t random);
 /* U(0, 1] */ double distr_uniform_e0i1(uint64_t random);
@@ -24,6 +29,11 @@ typedef struct {
 
 /* N(0, 1) */ double distr_normal_m0s1(distr_rand_t rand, void* state, double* second);
 /* N(m, s) */ double distr_normal(distr_normal_t* param);
+
+void distr_discrete_create(
+    distr_discrete_t* param, double memory[],
+    const double frequencies[], size_t count);
+/* D{0, ..., n-1} */ uint64_t distr_discrete(distr_discrete_t* param);
 
 #endif /* RANDOM_DISTRIBUTION_H */
 
@@ -78,6 +88,29 @@ double distr_normal(distr_normal_t* param) {
         param->saved = NAN;
     }
     return out * param->stddev + param->mean;
+}
+
+void distr_discrete_create(
+    distr_discrete_t* param, double memory[],
+    const double freqs[], size_t count
+) {
+    size_t i;
+
+    memory[0] = freqs[0];
+    for (i = 1; i < count; i++)
+        memory[i] = memory[i - 1] + freqs[i];
+    for (i = 0; i < count; i++)
+        memory[i] /= memory[count - 1];
+
+    param->distr = memory;
+    param->count = count;
+}
+
+uint64_t distr_discrete(distr_discrete_t* param) {
+    double r = distr_uniform_i0e1(param->rand(param->state));
+    uint64_t i; for (i = 0; i < param->count; i++)
+        if (r < param->distr[i]) return i;
+    return 0;
 }
 
 #endif /* DISTRIBUTION_IMPLEMENTATION */
